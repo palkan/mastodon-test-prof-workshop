@@ -77,6 +77,9 @@ Rails.application.configure do
 
   # Raise error when a before_action's only/except options reference missing actions
   config.action_controller.raise_on_missing_callback_actions = true
+
+  config.logger = ActiveSupport::TaggedLogging.new(Logger.new(nil))
+  config.log_level = :fatal
 end
 
 Paperclip::Attachment.default_options[:path] = Rails.root.join('spec', 'test_files', ':class', ':id_partition', ':style.:extension')
