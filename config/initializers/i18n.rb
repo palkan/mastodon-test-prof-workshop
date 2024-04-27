@@ -99,6 +99,10 @@ Rails.application.configure do
     :'zh-TW',
   ]
 
+  if Rails.env.test?
+    config.i18n.available_locales = %i[en de fa es ar zh-HK my th he ca sr-Latn]
+  end
+
   config.i18n.default_locale = begin
     custom_default_locale = ENV['DEFAULT_LOCALE']&.to_sym
 
