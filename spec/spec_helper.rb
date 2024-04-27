@@ -4,6 +4,8 @@ unless ENV['DISABLE_SIMPLECOV'] == 'true'
   require 'simplecov' # Configuration details loaded from .simplecov
 end
 
+require 'test_prof/recipes/rspec/sample'
+
 RSpec.configure do |config|
   config.example_status_persistence_file_path = 'tmp/cache/rspec/examples.txt'
   config.expect_with :rspec do |expectations|
