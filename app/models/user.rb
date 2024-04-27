@@ -317,6 +317,7 @@ class User < ApplicationRecord
 
   def password_required?
     return false if external?
+    return false if encrypted_password.present? && password.blank? && password_confirmation.blank?
 
     super
   end
