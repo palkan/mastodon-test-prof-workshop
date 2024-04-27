@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-unless ENV['DISABLE_SIMPLECOV'] == 'true'
+if ENV['COVERAGE'] == 'true'
   require 'simplecov' # Configuration details loaded from .simplecov
 end
 
