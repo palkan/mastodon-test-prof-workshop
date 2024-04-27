@@ -39,7 +39,7 @@ describe Auth::PasswordsController do
   end
 
   describe 'POST #update' do
-    let(:user) { Fabricate(:user) }
+    let(:user) { Fabricate(:user, password: '123456789') }
     let(:password) { 'reset0password' }
 
     before do
