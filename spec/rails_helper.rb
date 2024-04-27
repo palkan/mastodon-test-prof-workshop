@@ -14,6 +14,12 @@ require File.expand_path('../config/environment', __dir__)
 
 abort('The Rails environment is running in production mode!') if Rails.env.production?
 
+# Now remove all the non-available locales from the load path
+locales = Rails.application.config.i18n.available_locales.join('|')
+I18n.load_path.reject! do |path|
+  !path.match?(%r{(/(#{locales})/.*|.*\.(#{locales})|(#{locales}))\.(yml|rb)$})
+end
+
 require 'spec_helper'
 require 'rspec/rails'
 require 'webmock/rspec'
