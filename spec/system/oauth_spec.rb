@@ -6,7 +6,7 @@ describe 'Using OAuth from an external app' do
   let(:client_app) { Doorkeeper::Application.create!(name: 'test', redirect_uri: 'http://localhost/health', scopes: 'read') }
 
   context 'when the user is already logged in' do
-    let!(:user) { Fabricate(:user) }
+    let!(:user) { Fabricate(:user, password: 'testpassword') }
 
     before do
       visit new_user_session_path

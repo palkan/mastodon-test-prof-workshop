@@ -25,7 +25,7 @@ RSpec.describe ChallengableConcern do
   end
 
   context 'with a no-password user' do
-    let(:user) { Fabricate(:user, external: true, password: nil) }
+    let(:user) { Fabricate(:user, external: true, password: nil, encrypted_password: "") }
 
     before do
       sign_in user
