@@ -42,12 +42,21 @@ interaction:
         service: web
         compose:
           run_options: [ service-ports, use-aliases ]
-  rspec:
+  rspec: &rspec
     description: Run unit tests
     service: rails
     command: bundle exec rspec
     environment:
       RAILS_ENV: test
+  'rspec:notty':
+    <<: *rspec
+    description: Run unit tests w/o TTY (for hyperfine benchmarks)
+    command: bundle exec rspec
+    environment:
+      RAILS_ENV: test
+    compose:
+      # Fuubar (ProgressBar) introduces a 2x overhead when no TTY is available (trying to measure the terminal width via syscalls)
+      run_options: [ no-TTY, env=RUBY_PROGRESS_BAR_LENGTH=80 ]
 
   psql:
     description: Run Postgres psql console
