@@ -19,9 +19,10 @@
 /tmp
 /coverage
 /public/system
-/public/assets
-/public/packs
-/public/packs-test
+# We don't want to worry about assets compilation
+# /public/assets
+# /public/packs
+# /public/packs-test
 .env
 .env.production
 /node_modules/

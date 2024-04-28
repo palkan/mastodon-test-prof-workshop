@@ -49,12 +49,6 @@ interaction:
     environment:
       RAILS_ENV: test
 
-  yarn:
-    description: Run Yarn commands
-    service: rails
-    command: yarn
-    compose_run_options: [ no-deps ]
-
   psql:
     description: Run Postgres psql console
     service: postgres
@@ -72,6 +66,4 @@ provision:
   - dip bundle install
   - dip rails db:prepare
   - dip rails db:test:prepare
-  - dip yarn
-  - NODE_ENV=production RAILS_ENV=test dip rails assets:precompile
   - echo "🚀 Ready to run tests! Run 'dip rspec' to run them all"
