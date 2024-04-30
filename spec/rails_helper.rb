@@ -55,6 +55,9 @@ Devise::Test::ControllerHelpers.module_eval do
   end
 end
 
+# TestProf custom instrumentation
+TestProf::EventProf.monitor(Paperclip::Attachment, 'paperclip.post_process', :post_process)
+
 RSpec.configure do |config|
   # This is set before running spec:system, see lib/tasks/tests.rake
   config.filter_run_excluding type: lambda { |type|
