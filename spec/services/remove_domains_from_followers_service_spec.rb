@@ -3,6 +3,8 @@
 require 'rails_helper'
 
 RSpec.describe RemoveDomainsFromFollowersService do
+  before { Sidekiq::Testing.fake! }
+
   describe '#call' do
     context 'with account followers' do
       let(:account) { Fabricate(:account, domain: nil) }

@@ -3,6 +3,8 @@
 require 'rails_helper'
 
 RSpec.describe UnfavouriteService do
+  before { Sidekiq::Testing.fake! }
+
   describe '#call' do
     context 'with a favourited status' do
       let(:status) { Fabricate(:status, account: account) }

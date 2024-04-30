@@ -3,6 +3,8 @@
 require 'rails_helper'
 
 RSpec.describe WebhookService do
+  before { Sidekiq::Testing.fake! }
+
   describe '#call' do
     context 'with a relevant event webhook' do
       let!(:report) { Fabricate(:report) }

@@ -3,6 +3,8 @@
 require 'rails_helper'
 
 RSpec.describe RemoveFeaturedTagService do
+  before { Sidekiq::Testing.fake! }
+
   describe '#call' do
     context 'with a featured tag' do
       let(:featured_tag) { Fabricate(:featured_tag) }

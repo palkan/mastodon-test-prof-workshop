@@ -3,6 +3,8 @@
 require 'rails_helper'
 
 RSpec.describe VoteService do
+  before { Sidekiq::Testing.fake! }
+
   describe '#call' do
     subject { described_class.new.call(voter, poll, [0]) }
 
