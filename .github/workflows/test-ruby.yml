@@ -109,6 +109,7 @@ jobs:
       CAS_ENABLED: true
       BUNDLE_WITH: 'pam_authentication test'
       GITHUB_RSPEC: ${{ matrix.ruby-version == '.ruby-version' && github.event.pull_request && 'true' }}
+      RUBY_PROGRESS_BAR_LENGTH: 80
 
     strategy:
       fail-fast: false
@@ -185,6 +186,7 @@ jobs:
       DISABLE_SIMPLECOV: true
       RAILS_ENV: test
       BUNDLE_WITH: test
+      RUBY_PROGRESS_BAR_LENGTH: 80
 
     strategy:
       fail-fast: false
@@ -285,6 +287,7 @@ jobs:
       ES_ENABLED: true
       ES_HOST: localhost
       ES_PORT: 9200
+      RUBY_PROGRESS_BAR_LENGTH: 80
 
     strategy:
       fail-fast: false
