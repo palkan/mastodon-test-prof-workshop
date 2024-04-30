@@ -2,8 +2,7 @@
 
 require 'rails_helper'
 
-RSpec.describe 'Media' do
-  let(:user)    { Fabricate(:user) }
+RSpec.describe 'Media', :user do
   let(:token)   { Fabricate(:accessible_access_token, resource_owner_id: user.id, scopes: scopes) }
   let(:scopes)  { 'write:media' }
   let(:headers) { { 'Authorization' => "Bearer #{token.token}" } }

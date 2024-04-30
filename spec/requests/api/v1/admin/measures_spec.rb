@@ -2,11 +2,9 @@
 
 require 'rails_helper'
 
-describe 'Admin Measures' do
-  let(:user)    { Fabricate(:user, role: UserRole.find_by(name: 'Admin')) }
+describe 'Admin Measures', :admin, :account do
   let(:token)   { Fabricate(:accessible_access_token, resource_owner_id: user.id, scopes: scopes) }
   let(:headers) { { 'Authorization' => "Bearer #{token.token}" } }
-  let(:account) { Fabricate(:account) }
 
   describe 'GET /api/v1/admin/measures' do
     context 'when not authorized' do

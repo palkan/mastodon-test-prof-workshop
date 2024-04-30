@@ -2,13 +2,9 @@
 
 require 'rails_helper'
 
-describe 'API V1 Admin Trends Statuses' do
-  let(:role)   { UserRole.find_by(name: 'Admin') }
-  let(:user)   { Fabricate(:user, role: role) }
+describe 'API V1 Admin Trends Statuses', :admin, :account, :status do
   let(:scopes) { 'admin:read admin:write' }
   let(:token)   { Fabricate(:accessible_access_token, resource_owner_id: user.id, scopes: scopes) }
-  let(:account) { Fabricate(:account) }
-  let(:status)  { Fabricate(:status) }
   let(:headers) { { 'Authorization' => "Bearer #{token.token}" } }
 
   describe 'GET /api/v1/admin/trends/statuses' do

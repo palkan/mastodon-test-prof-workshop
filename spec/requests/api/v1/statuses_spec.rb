@@ -3,8 +3,7 @@
 require 'rails_helper'
 
 describe '/api/v1/statuses' do
-  context 'with an oauth token' do
-    let(:user)  { Fabricate(:user) }
+  context 'with an oauth token', :user do
     let(:client_app) { Fabricate(:application, name: 'Test app', website: 'http://testapp.com') }
     let(:token) { Fabricate(:accessible_access_token, resource_owner_id: user.id, application: client_app, scopes: scopes) }
     let(:headers) { { 'Authorization' => "Bearer #{token.token}" } }

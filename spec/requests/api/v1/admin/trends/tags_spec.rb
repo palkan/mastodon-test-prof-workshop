@@ -2,12 +2,9 @@
 
 require 'rails_helper'
 
-describe 'API V1 Admin Trends Tags' do
-  let(:role)   { UserRole.find_by(name: 'Admin') }
-  let(:user)   { Fabricate(:user, role: role) }
+describe 'API V1 Admin Trends Tags', :admin, :account do
   let(:scopes) { 'admin:read admin:write' }
   let(:token)   { Fabricate(:accessible_access_token, resource_owner_id: user.id, scopes: scopes) }
-  let(:account) { Fabricate(:account) }
   let(:tag)     { Fabricate(:tag) }
   let(:headers) { { 'Authorization' => "Bearer #{token.token}" } }
 

@@ -2,8 +2,7 @@
 
 require 'rails_helper'
 
-RSpec.describe 'Bookmarks' do
-  let(:user)    { Fabricate(:user) }
+RSpec.describe 'Bookmarks', :user, :status do
   let(:scopes)  { 'write:bookmarks' }
   let(:token)   { Fabricate(:accessible_access_token, resource_owner_id: user.id, scopes: scopes) }
   let(:headers) { { 'Authorization' => "Bearer #{token.token}" } }
@@ -12,8 +11,6 @@ RSpec.describe 'Bookmarks' do
     subject do
       post "/api/v1/statuses/#{status.id}/bookmark", headers: headers
     end
-
-    let(:status) { Fabricate(:status) }
 
     it_behaves_like 'forbidden for wrong scope', 'read'
 
@@ -83,8 +80,6 @@ RSpec.describe 'Bookmarks' do
       post "/api/v1/statuses/#{status.id}/unbookmark", headers: headers
     end
 
-    let(:status) { Fabricate(:status) }
-
     it_behaves_like 'forbidden for wrong scope', 'read'
 
     context 'with public status' do
@@ -110,8 +105,6 @@ RSpec.describe 'Bookmarks' do
       end
 
       context 'when the requesting user was blocked by the status author' do
-        let(:status) { Fabricate(:status) }
-
         before do
           Bookmark.find_or_create_by!(account: user.account, status: status)
           status.account.block!(user.account)

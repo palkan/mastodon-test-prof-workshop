@@ -2,8 +2,7 @@
 
 require 'rails_helper'
 
-RSpec.describe 'FeaturedTags' do
-  let(:user)    { Fabricate(:user) }
+RSpec.describe 'FeaturedTags', :user do
   let(:token)   { Fabricate(:accessible_access_token, resource_owner_id: user.id, scopes: scopes) }
   let(:scopes)  { 'read:accounts write:accounts' }
   let(:headers) { { 'Authorization' => "Bearer #{token.token}" } }

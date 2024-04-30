@@ -2,8 +2,7 @@
 
 require 'rails_helper'
 
-RSpec.describe 'Reports' do
-  let(:user)    { Fabricate(:user) }
+RSpec.describe 'Reports', :user, :status do
   let(:token)   { Fabricate(:accessible_access_token, resource_owner_id: user.id, scopes: scopes) }
   let(:scopes)  { 'write:reports' }
   let(:headers) { { 'Authorization' => "Bearer #{token.token}" } }
@@ -14,7 +13,6 @@ RSpec.describe 'Reports' do
     end
 
     let!(:admin)         { Fabricate(:user, role: UserRole.find_by(name: 'Admin')) }
-    let(:status)         { Fabricate(:status) }
     let(:target_account) { status.account }
     let(:category)       { 'other' }
     let(:forward)        { nil }

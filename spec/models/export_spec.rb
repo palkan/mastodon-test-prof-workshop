@@ -2,8 +2,7 @@
 
 require 'rails_helper'
 
-describe Export do
-  let(:account) { Fabricate(:account) }
+describe Export, :account do
   let(:target_accounts) do
     [{}, { username: 'one', domain: 'local.host' }].map(&method(:Fabricate).curry(2).call(:account))
   end

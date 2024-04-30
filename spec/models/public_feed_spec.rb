@@ -2,9 +2,7 @@
 
 require 'rails_helper'
 
-RSpec.describe PublicFeed do
-  let(:account) { Fabricate(:account) }
-
+RSpec.describe PublicFeed, :account do
   describe '#get' do
     subject { described_class.new(nil).get(20).map(&:id) }
 

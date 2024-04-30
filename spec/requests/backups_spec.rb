@@ -5,8 +5,7 @@ require 'rails_helper'
 describe 'Backups' do
   include RoutingHelper
 
-  describe 'GET backups#download' do
-    let(:user) { Fabricate(:user) }
+  describe 'GET backups#download', :user do
     let(:backup) { Fabricate(:backup, user: user) }
 
     before do

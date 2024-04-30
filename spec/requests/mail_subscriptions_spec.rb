@@ -2,8 +2,7 @@
 
 require 'rails_helper'
 
-RSpec.describe 'MailSubscriptionsController' do
-  let(:user) { Fabricate(:user) }
+RSpec.describe 'MailSubscriptionsController', :user do
   let(:token) { user.to_sgid(for: 'unsubscribe').to_s }
   let(:type) { 'follow' }
 

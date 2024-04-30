@@ -2,9 +2,7 @@
 
 require 'rails_helper'
 
-describe RelationshipFilter do
-  let(:account) { Fabricate(:account) }
-
+describe RelationshipFilter, :account do
   describe '#results' do
     let(:account_of_7_months) { Fabricate(:account_stat, statuses_count: 1, last_status_at: 7.months.ago).account }
     let(:account_of_1_day)    { Fabricate(:account_stat, statuses_count: 1, last_status_at: 1.day.ago).account }

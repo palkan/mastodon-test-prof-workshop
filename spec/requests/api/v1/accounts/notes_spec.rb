@@ -2,12 +2,10 @@
 
 require 'rails_helper'
 
-describe 'Accounts Notes API' do
-  let(:user)     { Fabricate(:user) }
+describe 'Accounts Notes API', :user, :account do
   let(:token)    { Fabricate(:accessible_access_token, resource_owner_id: user.id, scopes: scopes) }
   let(:scopes)   { 'write:accounts' }
   let(:headers)  { { 'Authorization' => "Bearer #{token.token}" } }
-  let(:account) { Fabricate(:account) }
   let(:comment) { 'foo' }
 
   describe 'POST /api/v1/accounts/:account_id/note' do

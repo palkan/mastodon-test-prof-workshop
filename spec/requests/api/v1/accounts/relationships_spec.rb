@@ -2,12 +2,11 @@
 
 require 'rails_helper'
 
-describe 'GET /api/v1/accounts/relationships' do
+describe 'GET /api/v1/accounts/relationships', :user do
   subject do
     get '/api/v1/accounts/relationships', headers: headers, params: params
   end
 
-  let(:user)    { Fabricate(:user) }
   let(:scopes)  { 'read:follows' }
   let(:token)   { Fabricate(:accessible_access_token, resource_owner_id: user.id, scopes: scopes) }
   let(:headers) { { 'Authorization' => "Bearer #{token.token}" } }

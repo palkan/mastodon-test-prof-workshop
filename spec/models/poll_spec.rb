@@ -3,8 +3,7 @@
 require 'rails_helper'
 
 describe Poll do
-  describe 'scopes' do
-    let(:status) { Fabricate(:status) }
+  describe 'scopes', :status do
     let(:attached_poll) { Fabricate(:poll, status: status) }
     let(:not_attached_poll) do
       Fabricate(:poll).tap do |poll|

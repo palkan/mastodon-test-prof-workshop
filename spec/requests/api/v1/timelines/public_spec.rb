@@ -2,8 +2,7 @@
 
 require 'rails_helper'
 
-describe 'Public' do
-  let(:user)    { Fabricate(:user) }
+describe 'Public', :user do
   let(:scopes)  { 'read:statuses' }
   let(:token)   { Fabricate(:accessible_access_token, resource_owner_id: user.id, scopes: scopes) }
   let(:headers) { { 'Authorization' => "Bearer #{token.token}" } }
@@ -25,11 +24,8 @@ describe 'Public' do
     let!(:local_status)   { Fabricate(:status, account: Fabricate.build(:account, domain: nil)) }
     let!(:remote_status)  { Fabricate(:status, account: Fabricate.build(:account, domain: 'example.com')) }
     let!(:media_status)   { Fabricate(:status, media_attachments: [Fabricate.build(:media_attachment)]) }
+    let!(:status) { Fabricate(:status, visibility: :private) }
     let(:params) { {} }
-
-    before do
-      Fabricate(:status, visibility: :private)
-    end
 
     context 'when the instance allows public preview' do
       let(:expected_statuses) { [local_status, remote_status, media_status] }

@@ -2,8 +2,7 @@
 
 require 'rails_helper'
 
-describe 'Featured Tags Suggestions API' do
-  let(:user)    { Fabricate(:user) }
+describe 'Featured Tags Suggestions API', :user do
   let(:token)   { Fabricate(:accessible_access_token, resource_owner_id: user.id, scopes: scopes) }
   let(:scopes)  { 'read:accounts' }
   let(:headers) { { 'Authorization' => "Bearer #{token.token}" } }

@@ -2,8 +2,7 @@
 
 require 'rails_helper'
 
-RSpec.describe 'API V2 Filters Keywords' do
-  let(:user)         { Fabricate(:user) }
+RSpec.describe 'API V2 Filters Keywords', :user do
   let(:token)        { Fabricate(:accessible_access_token, resource_owner_id: user.id, scopes: scopes) }
   let(:filter)       { Fabricate(:custom_filter, account: user.account) }
   let(:other_user)   { Fabricate(:user) }

@@ -2,10 +2,8 @@
 
 require 'rails_helper'
 
-RSpec.describe HomeFeed do
+RSpec.describe HomeFeed, :account do
   subject { described_class.new(account) }
-
-  let(:account) { Fabricate(:account) }
 
   describe '#get' do
     before do

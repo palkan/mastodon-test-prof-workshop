@@ -2,8 +2,7 @@
 
 require 'rails_helper'
 
-describe 'Home' do
-  let(:user)    { Fabricate(:user) }
+describe 'Home', :user do
   let(:scopes)  { 'read:statuses' }
   let(:token)   { Fabricate(:accessible_access_token, resource_owner_id: user.id, scopes: scopes) }
   let(:headers) { { 'Authorization' => "Bearer #{token.token}" } }

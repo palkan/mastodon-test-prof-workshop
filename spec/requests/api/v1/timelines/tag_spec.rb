@@ -2,8 +2,7 @@
 
 require 'rails_helper'
 
-RSpec.describe 'Tag' do
-  let(:user) { Fabricate(:user) }
+RSpec.describe 'Tag', :user, :account do
   let(:scopes)  { 'read:statuses' }
   let(:token)   { Fabricate(:accessible_access_token, resource_owner_id: user.id, scopes: scopes) }
   let(:headers) { { 'Authorization' => "Bearer #{token.token}" } }
@@ -22,7 +21,6 @@ RSpec.describe 'Tag' do
       get "/api/v1/timelines/tag/#{hashtag}", headers: headers, params: params
     end
 
-    let(:account)         { Fabricate(:account) }
     let!(:private_status) { PostStatusService.new.call(account, visibility: :private, text: '#life could be a dream') } # rubocop:disable RSpec/LetSetup
     let!(:life_status)    { PostStatusService.new.call(account, text: 'tell me what is my #life without your #love') }
     let!(:war_status)     { PostStatusService.new.call(user.account, text: '#war, war never changes') }

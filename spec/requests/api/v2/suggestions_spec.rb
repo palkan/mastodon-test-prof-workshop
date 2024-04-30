@@ -2,14 +2,13 @@
 
 require 'rails_helper'
 
-describe 'Suggestions API' do
-  let(:user)    { Fabricate(:user) }
+describe 'Suggestions API', :user do
   let(:token)   { Fabricate(:accessible_access_token, resource_owner_id: user.id, scopes: scopes) }
   let(:scopes)  { 'read' }
   let(:headers) { { 'Authorization' => "Bearer #{token.token}" } }
 
-  describe 'GET /api/v2/suggestions' do
-    let(:bob) { Fabricate(:account) }
+  describe 'GET /api/v2/suggestions', :account do
+    let(:bob) { account }
     let(:jeff) { Fabricate(:account) }
     let(:params) { {} }
 

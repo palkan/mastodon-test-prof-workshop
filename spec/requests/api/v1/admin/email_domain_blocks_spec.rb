@@ -2,11 +2,8 @@
 
 require 'rails_helper'
 
-RSpec.describe 'Email Domain Blocks' do
-  let(:role)    { UserRole.find_by(name: 'Admin') }
-  let(:user)    { Fabricate(:user, role: role) }
+RSpec.describe 'Email Domain Blocks', :admin, :account do
   let(:token)   { Fabricate(:accessible_access_token, resource_owner_id: user.id, scopes: scopes) }
-  let(:account) { Fabricate(:account) }
   let(:scopes)  { 'admin:read:email_domain_blocks admin:write:email_domain_blocks' }
   let(:headers) { { 'Authorization' => "Bearer #{token.token}" } }
 

@@ -2,8 +2,7 @@
 
 require 'rails_helper'
 
-describe 'API V1 Statuses Histories' do
-  let(:user)  { Fabricate(:user) }
+describe 'API V1 Statuses Histories', :user do
   let(:token) { Fabricate(:accessible_access_token, resource_owner_id: user.id, scopes: scopes) }
   let(:scopes)  { 'read:statuses' }
   let(:headers) { { 'Authorization' => "Bearer #{token.token}" } }

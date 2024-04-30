@@ -2,12 +2,10 @@
 
 require 'rails_helper'
 
-describe 'Accounts Lists API' do
-  let(:user)     { Fabricate(:user) }
+describe 'Accounts Lists API', :user, :account do
   let(:token)    { Fabricate(:accessible_access_token, resource_owner_id: user.id, scopes: scopes) }
   let(:scopes)   { 'read:lists' }
   let(:headers)  { { 'Authorization' => "Bearer #{token.token}" } }
-  let(:account) { Fabricate(:account) }
   let(:list)    { Fabricate(:list, account: user.account) }
 
   before do
