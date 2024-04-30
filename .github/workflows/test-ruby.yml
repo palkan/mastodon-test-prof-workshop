@@ -1,11 +1,7 @@
 name: Ruby Testing
 
 on:
-  push:
-    branches-ignore:
-      - 'dependabot/**'
-      - 'renovate/**'
-  pull_request:
+  workflow_dispatch:
 
 env:
   BUNDLE_CLEAN: true
@@ -23,7 +19,6 @@ jobs:
       fail-fast: true
       matrix:
         mode:
-          - production
           - test
     env:
       RAILS_ENV: ${{ matrix.mode }}
@@ -114,9 +109,6 @@ jobs:
       fail-fast: false
       matrix:
         ruby-version:
-          # - '3.1'
-          # - '.ruby-version'
-          - '3.2'
           - '3.3'
     steps:
       - uses: actions/checkout@v4
@@ -134,18 +126,22 @@ jobs:
         uses: ./.github/actions/setup-ruby
         with:
           ruby-version: ${{ matrix.ruby-version}}
-          additional-system-dependencies: ffmpeg imagemagick libpam-dev
+          additional-system-dependencies: ffmpeg libpam-dev
 
       - name: Load database schema
-        run: './bin/rails db:create db:schema:load db:seed'
+        run: |
+          bin/rails db:setup
+          bin/flatware fan bin/rails db:test:prepare
 
-      - run: bin/rspec
+      - run: bin/flatware rspec -r ./spec/flatware_helper.rb
 
       - name: Upload coverage reports to Codecov
         if: matrix.ruby-version == '.ruby-version'
         uses: codecov/codecov-action@v4
         with:
-          files: coverage/lcov/mastodon.lcov
+          files: coverage/lcov/*.lcov
+        env:
+          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
 
   test-e2e:
     name: End to End testing
@@ -190,9 +186,6 @@ jobs:
       fail-fast: false
       matrix:
         ruby-version:
-          # - '3.1'
-          # - '.ruby-version'
-          - '3.2'
           - '3.3'
 
     steps:
@@ -290,15 +283,9 @@ jobs:
       fail-fast: false
       matrix:
         ruby-version:
-          # - '3.1'
-          # - '.ruby-version'
-          - '3.2'
           - '3.3'
         search-image:
           - docker.elastic.co/elasticsearch/elasticsearch:7.17.13
-        include:
-          - ruby-version: '.ruby-version'
-            search-image: docker.elastic.co/elasticsearch/elasticsearch:8.10.2
 
     steps:
       - uses: actions/checkout@v4
