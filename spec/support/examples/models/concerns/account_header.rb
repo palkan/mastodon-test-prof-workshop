@@ -14,7 +14,7 @@ shared_examples 'AccountHeader' do |fabricator|
       expect(account.header_file_name).to_not be_blank
     end
 
-    it 'saves a new header under a different file name' do
+    it 'saves a new header under a different file name', paperclip: :process do
       previous_file_name = account.header_file_name
       account.update(header: base64_attachment)
       expect(account.header_file_name).to_not eq previous_file_name

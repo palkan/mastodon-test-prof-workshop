@@ -58,6 +58,28 @@ end
 # TestProf custom instrumentation
 TestProf::EventProf.monitor(Paperclip::Attachment, 'paperclip.post_process', :post_process)
 
+module Paperclip
+  module Testing
+    class << self
+      def fake!
+        @fake = true
+      end
+
+      def fake? = @fake
+
+      def real!
+        @fake = false
+      end
+
+      def real? = !fake?
+    end
+  end
+
+  class Attachment
+    def post_processing = @post_processing && Paperclip::Testing.real?
+  end
+end
+
 RSpec.configure do |config|
   # This is set before running spec:system, see lib/tasks/tests.rake
   config.filter_run_excluding type: lambda { |type|
@@ -115,6 +137,16 @@ RSpec.configure do |config|
       Sidekiq::Testing.fake!
     else
       Sidekiq::Testing.inline!
+    end
+  end
+
+  paperclip_fake_types = %i[model request service controller]
+
+  config.before do |example|
+    if example.metadata[:type].in?(paperclip_fake_types) && example.metadata[:paperclip] != :process
+      Paperclip::Testing.fake!
+    else
+      Paperclip::Testing.real!
     end
   end
 

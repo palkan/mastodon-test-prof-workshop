@@ -30,7 +30,7 @@ shared_examples 'AccountAvatar' do |fabricator|
       expect(account.avatar_file_name).to_not be_blank
     end
 
-    it 'saves a new avatar under a different file name' do
+    it 'saves a new avatar under a different file name', paperclip: :process do
       previous_file_name = account.avatar_file_name
       account.update(avatar: base64_attachment)
       expect(account.avatar_file_name).to_not eq previous_file_name
