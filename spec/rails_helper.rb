@@ -138,10 +138,8 @@ RSpec.configure do |config|
     end
   end
 
-  paperclip_fake_types = %i[model request service controller]
-
   config.before do |example|
-    if example.metadata[:type].in?(paperclip_fake_types) && example.metadata[:paperclip] != :process
+    if example.metadata[:paperclip] != :process && example.metadata[:type] != :system
       Paperclip::Testing.fake!
     else
       Paperclip::Testing.real!

@@ -8,7 +8,7 @@ describe PostProcessMediaWorker do
   describe '#perform' do
     let(:media_attachment) { Fabricate(:media_attachment) }
 
-    it 'reprocesses and updates the media attachment' do
+    it 'reprocesses and updates the media attachment', paperclip: :process do
       worker.perform(media_attachment.id)
 
       expect(media_attachment.processing).to eq('complete')
@@ -21,7 +21,7 @@ describe PostProcessMediaWorker do
     end
 
     context 'when sidekiq retries are exhausted' do
-      it 'sets state to failed' do
+      it 'sets state to failed', paperclip: :process do
         described_class.within_sidekiq_retries_exhausted_block({ 'args' => [media_attachment.id] }) do
           worker.perform(media_attachment.id)
         end
