@@ -73,6 +73,8 @@ RSpec.describe ActivityPub::Activity::Create do
       }.with_indifferent_access
     end
 
+    before { Sidekiq::Testing.fake! }
+
     before do
       follower.follow!(sender)
     end

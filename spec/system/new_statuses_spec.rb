@@ -2,7 +2,7 @@
 
 require 'rails_helper'
 
-describe 'NewStatuses', :sidekiq_inline do
+describe 'NewStatuses' do
   include ProfileStories
 
   subject { page }

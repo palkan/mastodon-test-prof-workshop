@@ -8,6 +8,7 @@ RSpec.describe UnmuteService do
     let!(:target_account) { Fabricate(:account) }
 
     context 'when account is muting target account' do
+      before { Sidekiq::Testing.fake! }
       before { Fabricate :mute, account: account, target_account: target_account }
 
       context 'when account follows target_account' do

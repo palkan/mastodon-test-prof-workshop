@@ -10,6 +10,8 @@ RSpec.describe AfterBlockDomainFromAccountService do
   let(:alice) { Fabricate(:account, username: 'alice') }
 
   before do
+    Sidekiq::Testing.fake!
+
     NotificationPermission.create!(account: alice, from_account: wolf)
 
     wolf.follow!(alice)

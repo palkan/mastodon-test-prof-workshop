@@ -98,13 +98,8 @@ RSpec.configure do |config|
     self.use_transactional_tests = true
   end
 
-  config.around do |example|
-    if example.metadata[:sidekiq_inline] == true
-      Sidekiq::Testing.inline!
-    else
-      Sidekiq::Testing.fake!
-    end
-    example.run
+  config.before(:each) do
+    Sidekiq::Testing.inline!
   end
 
   config.before :each, type: :cli do

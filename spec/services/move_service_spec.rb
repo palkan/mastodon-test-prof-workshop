@@ -5,6 +5,8 @@ require 'rails_helper'
 RSpec.describe MoveService do
   subject { described_class.new.call(migration) }
 
+  before { Sidekiq::Testing.fake! }
+
   context 'with a valid migration record' do
     let(:migration) { Fabricate(:account_migration, account: source_account, target_account: target_account) }
     let(:source_account) { Fabricate(:account) }
