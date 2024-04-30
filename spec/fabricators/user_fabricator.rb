@@ -7,6 +7,7 @@ Fabricator(:user) do
       attrs.fetch(:account_attributes, {}).merge(user: nil)
     )
   end
+  role(fabricator: :user_role)
   email        { sequence(:email) { |i| "#{i}#{Faker::Internet.email}" } }
   password     '123456789'
   confirmed_at { Time.zone.now }
