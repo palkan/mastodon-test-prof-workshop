@@ -2,8 +2,7 @@
 
 require 'rails_helper'
 
-describe 'Pins' do
-  let(:user)    { Fabricate(:user) }
+describe 'Pins', :user do
   let(:scopes)  { 'write:accounts' }
   let(:token)   { Fabricate(:accessible_access_token, resource_owner_id: user.id, scopes: scopes) }
   let(:headers) { { 'Authorization' => "Bearer #{token.token}" } }
@@ -13,7 +12,7 @@ describe 'Pins' do
       post "/api/v1/statuses/#{status.id}/pin", headers: headers
     end
 
-    let(:status) { Fabricate(:status, account: user.account) }
+    let_it_be(:status) { Fabricate(:status, account: user.account) }
 
     it_behaves_like 'forbidden for wrong scope', 'read read:accounts'
 

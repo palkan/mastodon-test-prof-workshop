@@ -2,16 +2,13 @@
 
 require 'rails_helper'
 
-describe '/api/v1/accounts' do
-  let(:user)    { Fabricate(:user) }
+describe '/api/v1/accounts', :user, :account do
   let(:scopes)  { '' }
   let(:token)   { Fabricate(:accessible_access_token, resource_owner_id: user.id, scopes: scopes) }
   let(:headers) { { 'Authorization' => "Bearer #{token.token}" } }
 
   describe 'GET /api/v1/accounts/:id' do
     context 'when logged out' do
-      let(:account) { Fabricate(:account) }
-
       it 'returns account entity as 200 OK', :aggregate_failures do
         get "/api/v1/accounts/#{account.id}"
 
@@ -34,7 +31,6 @@ describe '/api/v1/accounts' do
         get "/api/v1/accounts/#{account.id}", headers: headers
       end
 
-      let(:account) { Fabricate(:account) }
       let(:scopes) { 'read:accounts' }
 
       it 'returns account entity as 200 OK', :aggregate_failures do

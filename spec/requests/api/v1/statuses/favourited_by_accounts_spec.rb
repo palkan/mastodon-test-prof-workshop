@@ -2,13 +2,12 @@
 
 require 'rails_helper'
 
-RSpec.describe 'API V1 Statuses Favourited by Accounts' do
-  let(:user) { Fabricate(:user) }
+RSpec.describe 'API V1 Statuses Favourited by Accounts', :user, :account do
   let(:scopes)  { 'read:accounts' }
   # let(:app)   { Fabricate(:application, name: 'Test app', website: 'http://testapp.com') }
   let(:token) { Fabricate(:accessible_access_token, resource_owner_id: user.id, scopes: scopes) }
   let(:headers) { { 'Authorization' => "Bearer #{token.token}" } }
-  let(:alice) { Fabricate(:account) }
+  let(:alice) { account }
   let(:bob)   { Fabricate(:account) }
 
   context 'with an oauth token' do

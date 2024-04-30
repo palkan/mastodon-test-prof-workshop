@@ -2,8 +2,7 @@
 
 require 'rails_helper'
 
-RSpec.describe 'Filters' do
-  let(:user)    { Fabricate(:user) }
+RSpec.describe 'Filters', :user do
   let(:scopes)  { 'read:filters write:filters' }
   let(:token)   { Fabricate(:accessible_access_token, resource_owner_id: user.id, scopes: scopes) }
   let(:headers) { { 'Authorization' => "Bearer #{token.token}" } }

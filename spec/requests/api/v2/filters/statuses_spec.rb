@@ -2,8 +2,7 @@
 
 require 'rails_helper'
 
-RSpec.describe 'API V2 Filters Statuses' do
-  let(:user)         { Fabricate(:user) }
+RSpec.describe 'API V2 Filters Statuses', :user, :status do
   let(:token)        { Fabricate(:accessible_access_token, resource_owner_id: user.id, scopes: scopes) }
   let(:filter)       { Fabricate(:custom_filter, account: user.account) }
   let(:other_user)   { Fabricate(:user) }
@@ -34,7 +33,6 @@ RSpec.describe 'API V2 Filters Statuses' do
   describe 'POST #create' do
     let(:scopes)    { 'write:filters' }
     let(:filter_id) { filter.id }
-    let!(:status)   { Fabricate(:status) }
 
     before do
       post "/api/v2/filters/#{filter_id}/statuses", headers: headers, params: { status_id: status.id }

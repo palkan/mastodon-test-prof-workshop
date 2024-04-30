@@ -2,8 +2,7 @@
 
 require 'rails_helper'
 
-describe 'API V1 Statuses Mutes' do
-  let(:user)  { Fabricate(:user) }
+describe 'API V1 Statuses Mutes', :user do
   let(:token) { Fabricate(:accessible_access_token, resource_owner_id: user.id, scopes: scopes) }
   let(:scopes)  { 'write:mutes' }
   let(:headers) { { 'Authorization' => "Bearer #{token.token}" } }

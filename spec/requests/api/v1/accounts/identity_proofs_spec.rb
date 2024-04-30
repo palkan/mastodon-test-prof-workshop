@@ -2,12 +2,10 @@
 
 require 'rails_helper'
 
-describe 'Accounts Identity Proofs API' do
-  let(:user)     { Fabricate(:user) }
+describe 'Accounts Identity Proofs API', :user, :account do
   let(:token)    { Fabricate(:accessible_access_token, resource_owner_id: user.id, scopes: scopes) }
   let(:scopes)   { 'read:accounts' }
   let(:headers)  { { 'Authorization' => "Bearer #{token.token}" } }
-  let(:account) { Fabricate(:account) }
 
   describe 'GET /api/v1/accounts/identity_proofs' do
     it 'returns http success' do

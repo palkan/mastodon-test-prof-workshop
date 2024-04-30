@@ -2,8 +2,7 @@
 
 require 'rails_helper'
 
-RSpec.describe 'Blocks' do
-  let(:user)    { Fabricate(:user) }
+RSpec.describe 'Blocks', :user do
   let(:scopes)  { 'read:blocks' }
   let(:token)   { Fabricate(:accessible_access_token, resource_owner_id: user.id, scopes: scopes) }
   let(:headers) { { 'Authorization' => "Bearer #{token.token}" } }

@@ -2,8 +2,7 @@
 
 require 'rails_helper'
 
-describe 'API V1 Push Subscriptions' do
-  let(:user) { Fabricate(:user) }
+describe 'API V1 Push Subscriptions', :user do
   let(:create_payload) do
     {
       subscription: {

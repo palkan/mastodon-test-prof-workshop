@@ -3,12 +3,12 @@
 require 'rails_helper'
 
 RSpec.describe 'API V1 Conversations' do
-  let!(:user) { Fabricate(:user, account_attributes: { username: 'alice' }) }
+  let_it_be(:user) { Fabricate(:user, account_attributes: { username: 'alice' }) }
   let(:scopes) { 'read:statuses' }
   let(:token)   { Fabricate(:accessible_access_token, resource_owner_id: user.id, scopes: scopes) }
   let(:headers) { { 'Authorization' => "Bearer #{token.token}" } }
 
-  let(:other) { Fabricate(:user) }
+  let_it_be(:other) { Fabricate(:user) }
 
   describe 'GET /api/v1/conversations' do
     before do

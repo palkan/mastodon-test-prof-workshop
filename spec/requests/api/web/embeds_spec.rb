@@ -56,8 +56,7 @@ RSpec.describe '/api/web/embed' do
     end
   end
 
-  context 'with an API token' do
-    let(:user)    { Fabricate(:user) }
+  context 'with an API token', :user do
     let(:token)   { Fabricate(:accessible_access_token, resource_owner_id: user.id, scopes: 'read') }
     let(:headers) { { 'Authorization' => "Bearer #{token.token}" } }
 

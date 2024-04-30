@@ -2,8 +2,7 @@
 
 require 'rails_helper'
 
-RSpec.describe 'Favourites' do
-  let(:user)    { Fabricate(:user) }
+RSpec.describe 'Favourites', :user, :status do
   let(:scopes)  { 'write:favourites' }
   let(:token)   { Fabricate(:accessible_access_token, resource_owner_id: user.id, scopes: scopes) }
   let(:headers) { { 'Authorization' => "Bearer #{token.token}" } }
@@ -12,8 +11,6 @@ RSpec.describe 'Favourites' do
     subject do
       post "/api/v1/statuses/#{status.id}/favourite", headers: headers
     end
-
-    let(:status) { Fabricate(:status) }
 
     it_behaves_like 'forbidden for wrong scope', 'read read:favourites'
 
@@ -74,8 +71,6 @@ RSpec.describe 'Favourites' do
     subject do
       post "/api/v1/statuses/#{status.id}/unfavourite", headers: headers
     end
-
-    let(:status) { Fabricate(:status) }
 
     it_behaves_like 'forbidden for wrong scope', 'read read:favourites'
 

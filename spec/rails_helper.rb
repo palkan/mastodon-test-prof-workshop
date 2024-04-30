@@ -80,6 +80,11 @@ module Paperclip
   end
 end
 
+require "test_prof/recipes/rspec/let_it_be"
+TestProf::LetItBe.configure do |config|
+  config.default_modifiers[:refind] = true
+end
+
 RSpec.configure do |config|
   # This is set before running spec:system, see lib/tasks/tests.rake
   config.filter_run_excluding type: lambda { |type|

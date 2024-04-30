@@ -2,9 +2,7 @@
 
 require 'rails_helper'
 
-RSpec.describe 'Accounts' do
-  let(:role)    { UserRole.find_by(name: 'Admin') }
-  let(:user)    { Fabricate(:user, role: role) }
+RSpec.describe 'Accounts', :admin, :account do
   let(:scopes)  { 'admin:read:accounts admin:write:accounts' }
   let(:token)   { Fabricate(:accessible_access_token, resource_owner_id: user.id, scopes: scopes) }
   let(:headers) { { 'Authorization' => "Bearer #{token.token}" } }
@@ -81,7 +79,7 @@ RSpec.describe 'Accounts' do
     end
 
     context 'when no parameter is given' do
-      let(:expected_results) { [disabled_account, pending_account, admin_account] }
+      let(:expected_results) { [disabled_account, pending_account, admin_account, account] }
 
       it_behaves_like 'a successful request'
     end
@@ -102,8 +100,6 @@ RSpec.describe 'Accounts' do
     subject do
       get "/api/v1/admin/accounts/#{account.id}", headers: headers
     end
-
-    let(:account) { Fabricate(:account) }
 
     it_behaves_like 'forbidden for wrong scope', 'read read:accounts admin:write admin:write:accounts'
     it_behaves_like 'forbidden for wrong role', ''
@@ -130,8 +126,6 @@ RSpec.describe 'Accounts' do
     subject do
       post "/api/v1/admin/accounts/#{account.id}/approve", headers: headers
     end
-
-    let(:account) { Fabricate(:account) }
 
     context 'when the account is pending' do
       before do
@@ -183,8 +177,6 @@ RSpec.describe 'Accounts' do
       post "/api/v1/admin/accounts/#{account.id}/reject", headers: headers
     end
 
-    let(:account) { Fabricate(:account) }
-
     context 'when the account is pending' do
       before do
         account.user.update(approved: false)
@@ -235,8 +227,6 @@ RSpec.describe 'Accounts' do
       post "/api/v1/admin/accounts/#{account.id}/enable", headers: headers
     end
 
-    let(:account) { Fabricate(:account) }
-
     before do
       account.user.update(disabled: true)
     end
@@ -264,8 +254,6 @@ RSpec.describe 'Accounts' do
     subject do
       post "/api/v1/admin/accounts/#{account.id}/unsuspend", headers: headers
     end
-
-    let(:account) { Fabricate(:account) }
 
     context 'when the account is suspended' do
       before do
@@ -305,8 +293,6 @@ RSpec.describe 'Accounts' do
       post "/api/v1/admin/accounts/#{account.id}/unsensitive", headers: headers
     end
 
-    let(:account) { Fabricate(:account) }
-
     before do
       account.update(sensitized_at: 10.days.ago)
     end
@@ -335,8 +321,6 @@ RSpec.describe 'Accounts' do
       post "/api/v1/admin/accounts/#{account.id}/unsilence", headers: headers
     end
 
-    let(:account) { Fabricate(:account) }
-
     before do
       account.update(silenced_at: 3.days.ago)
     end
@@ -364,8 +348,6 @@ RSpec.describe 'Accounts' do
     subject do
       delete "/api/v1/admin/accounts/#{account.id}", headers: headers
     end
-
-    let(:account) { Fabricate(:account) }
 
     context 'when account is suspended' do
       before do

@@ -2,9 +2,7 @@
 
 require 'rails_helper'
 
-describe 'Accounts show response' do
-  let(:account) { Fabricate(:account) }
-
+describe 'Accounts show response', :account do
   context 'with an unapproved account' do
     before { account.user.update(approved: false) }
 
@@ -148,9 +146,7 @@ describe 'Accounts show response' do
           end
         end
 
-        context 'when signed in' do
-          let(:user) { Fabricate(:user) }
-
+        context 'when signed in', :user do
           before do
             sign_in(user)
             get short_account_path(username: account.username), headers: headers.merge({ 'Cookie' => '123' })

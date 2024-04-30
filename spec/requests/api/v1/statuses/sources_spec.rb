@@ -2,8 +2,7 @@
 
 require 'rails_helper'
 
-RSpec.describe 'Sources' do
-  let(:user)    { Fabricate(:user) }
+RSpec.describe 'Sources', :user, :status do
   let(:scopes)  { 'read:statuses' }
   let(:token)   { Fabricate(:accessible_access_token, resource_owner_id: user.id, scopes: scopes) }
   let(:headers) { { 'Authorization' => "Bearer #{token.token}" } }
@@ -12,8 +11,6 @@ RSpec.describe 'Sources' do
     subject do
       get "/api/v1/statuses/#{status.id}/source", headers: headers
     end
-
-    let(:status) { Fabricate(:status) }
 
     it_behaves_like 'forbidden for wrong scope', 'write write:statuses'
 

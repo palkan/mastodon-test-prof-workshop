@@ -2,8 +2,7 @@
 
 require 'rails_helper'
 
-RSpec.describe 'Favourites' do
-  let(:user)    { Fabricate(:user) }
+RSpec.describe 'Favourites', :user do
   let(:token)   { Fabricate(:accessible_access_token, resource_owner_id: user.id, scopes: scopes) }
   let(:scopes)  { 'read:favourites' }
   let(:headers) { { Authorization: "Bearer #{token.token}" } }

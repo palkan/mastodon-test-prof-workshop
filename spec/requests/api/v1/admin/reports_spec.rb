@@ -2,9 +2,7 @@
 
 require 'rails_helper'
 
-RSpec.describe 'Reports' do
-  let(:role)    { UserRole.find_by(name: 'Admin') }
-  let(:user)    { Fabricate(:user, role: role) }
+RSpec.describe 'Reports', :admin do
   let(:scopes)  { 'admin:read:reports admin:write:reports' }
   let(:token)   { Fabricate(:accessible_access_token, resource_owner_id: user.id, scopes: scopes) }
   let(:headers) { { 'Authorization' => "Bearer #{token.token}" } }

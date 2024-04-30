@@ -2,12 +2,10 @@
 
 require 'rails_helper'
 
-describe 'API V1 Accounts FollowingAccounts' do
-  let(:user)    { Fabricate(:user) }
+describe 'API V1 Accounts FollowingAccounts', :user, :account do
   let(:token)   { Fabricate(:accessible_access_token, resource_owner_id: user.id, scopes: scopes) }
   let(:scopes)   { 'read:accounts' }
   let(:headers)  { { 'Authorization' => "Bearer #{token.token}" } }
-  let(:account) { Fabricate(:account) }
   let(:alice)   { Fabricate(:account) }
   let(:bob)     { Fabricate(:account) }
 

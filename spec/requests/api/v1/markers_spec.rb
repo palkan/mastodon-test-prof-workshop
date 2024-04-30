@@ -2,8 +2,7 @@
 
 require 'rails_helper'
 
-RSpec.describe 'API Markers' do
-  let(:user)    { Fabricate(:user) }
+RSpec.describe 'API Markers', :user do
   let(:scopes)  { 'read:statuses write:statuses' }
   let(:token)   { Fabricate(:accessible_access_token, resource_owner_id: user.id, scopes: scopes) }
   let(:headers) { { 'Authorization' => "Bearer #{token.token}" } }
