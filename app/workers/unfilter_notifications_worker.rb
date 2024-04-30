@@ -16,7 +16,7 @@ class UnfilterNotificationsWorker
   private
 
   def push_to_conversations!
-    notifications_with_private_mentions.find_each { |notification| AccountConversation.add_status(@notification_request.account, notification.target_status) }
+    notifications_with_private_mentions.reorder(nil).find_each { |notification| AccountConversation.add_status(@notification_request.account, notification.target_status) }
   end
 
   def unfilter_notifications!

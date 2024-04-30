@@ -101,7 +101,7 @@ RSpec.describe User do
     end
   end
 
-  describe 'scopes', :inline_jobs do
+  describe 'scopes' do
     describe 'recent' do
       it 'returns an array of recent users ordered by id' do
         first_user = Fabricate(:user)
@@ -507,7 +507,7 @@ RSpec.describe User do
     context 'when user is new' do
       let(:confirmed_at) { nil }
 
-      it 'confirms user and delivers welcome email', :inline_jobs do
+      it 'confirms user and delivers welcome email' do
         emails = capture_emails { subject }
 
         expect(user.confirmed_at).to be_present

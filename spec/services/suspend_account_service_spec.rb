@@ -2,7 +2,7 @@
 
 require 'rails_helper'
 
-RSpec.describe SuspendAccountService, :inline_jobs do
+RSpec.describe SuspendAccountService do
   shared_examples 'common behavior' do
     subject { described_class.new.call(account) }
 

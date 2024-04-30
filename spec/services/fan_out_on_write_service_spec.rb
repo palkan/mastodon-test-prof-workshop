@@ -34,7 +34,7 @@ RSpec.describe FanOutOnWriteService do
   context 'when status is public' do
     let(:visibility) { 'public' }
 
-    it 'adds status to home feed of author and followers and broadcasts', :inline_jobs do
+    it 'adds status to home feed of author and followers and broadcasts' do
       expect(status.id)
         .to be_in(home_feed_of(alice))
         .and be_in(home_feed_of(bob))
@@ -51,7 +51,7 @@ RSpec.describe FanOutOnWriteService do
   context 'when status is limited' do
     let(:visibility) { 'limited' }
 
-    it 'adds status to home feed of author and mentioned followers and does not broadcast', :inline_jobs do
+    it 'adds status to home feed of author and mentioned followers and does not broadcast' do
       expect(status.id)
         .to be_in(home_feed_of(alice))
         .and be_in(home_feed_of(bob))
@@ -65,7 +65,7 @@ RSpec.describe FanOutOnWriteService do
   context 'when status is private' do
     let(:visibility) { 'private' }
 
-    it 'adds status to home feed of author and followers and does not broadcast', :inline_jobs do
+    it 'adds status to home feed of author and followers and does not broadcast' do
       expect(status.id)
         .to be_in(home_feed_of(alice))
         .and be_in(home_feed_of(bob))
@@ -78,7 +78,7 @@ RSpec.describe FanOutOnWriteService do
   context 'when status is direct' do
     let(:visibility) { 'direct' }
 
-    it 'is added to the home feed of its author and mentioned followers and does not broadcast', :inline_jobs do
+    it 'is added to the home feed of its author and mentioned followers and does not broadcast' do
       expect(status.id)
         .to be_in(home_feed_of(alice))
         .and be_in(home_feed_of(bob))
@@ -90,6 +90,8 @@ RSpec.describe FanOutOnWriteService do
 
     context 'when handling status updates' do
       before do
+        Sidekiq::Testing.fake!
+
         subject.call(status)
 
         status.snapshot!(at_time: status.created_at, rate_limit: false)

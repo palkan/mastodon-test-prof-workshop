@@ -2,7 +2,7 @@
 
 require 'rails_helper'
 
-describe 'OCR', :inline_jobs, :js, :streaming do
+describe 'OCR', :js, :streaming do
   include ProfileStories
 
   let(:email)               { 'test@example.com' }

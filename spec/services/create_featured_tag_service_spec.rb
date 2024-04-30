@@ -3,6 +3,8 @@
 require 'rails_helper'
 
 RSpec.describe CreateFeaturedTagService do
+  before { Sidekiq::Testing.fake! }
+
   describe '#call' do
     let(:tag) { 'test' }
 

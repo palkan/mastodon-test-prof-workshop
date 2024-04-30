@@ -118,6 +118,7 @@ RSpec.describe UpdateStatusService do
     let!(:voter) { Fabricate(:account) }
 
     before do
+      Sidekiq::Testing.fake!
       status.update(poll: poll)
       VoteService.new.call(voter, poll, [0])
       subject.call(status, status.account_id, text: 'Foo', poll: { options: %w(Bar Baz Foo), expires_in: 5.days.to_i })

@@ -225,7 +225,7 @@ RSpec.describe ActivityPub::FetchRemoteStatusService do
     end
   end
 
-  context 'with statuses referencing other statuses', :inline_jobs do
+  context 'with statuses referencing other statuses' do
     before do
       stub_const 'ActivityPub::FetchRemoteStatusService::DISCOVERIES_PER_REQUEST', 3
     end

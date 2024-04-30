@@ -1,3 +1,4 @@
+
 # frozen_string_literal: true
 
 require 'rails_helper'
@@ -195,7 +196,7 @@ RSpec.describe ResolveAccountService do
       expect(account.uri).to eq 'https://ap.example.com/users/foo'
     end
 
-    it 'merges accounts', :inline_jobs do
+    it 'merges accounts' do
       account = subject.call('foo@ap.example.com')
 
       expect(status.reload.account_id).to eq account.id

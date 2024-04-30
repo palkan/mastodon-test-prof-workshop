@@ -47,6 +47,8 @@ RSpec.describe Admin::AccountAction do
       end
 
       it 'queues Admin::SuspensionWorker by 1' do
+        Sidekiq::Testing.fake!
+
         expect do
           subject
         end.to change { Admin::SuspensionWorker.jobs.size }.by 1
@@ -69,7 +71,7 @@ RSpec.describe Admin::AccountAction do
       end
     end
 
-    it 'sends email to target account user', :inline_jobs do
+    it 'sends email to target account user' do
       emails = capture_emails { subject }
 
       expect(emails).to contain_exactly(
@@ -80,6 +82,7 @@ RSpec.describe Admin::AccountAction do
     end
 
     it 'sends notification, log the action, and closes other reports', :aggregate_failures do
+      Sidekiq::Testing.fake!
       other_report = Fabricate(:report, target_account: target_account)
 
       expect { subject }
