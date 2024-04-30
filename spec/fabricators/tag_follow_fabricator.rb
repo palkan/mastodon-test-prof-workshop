@@ -2,5 +2,5 @@
 
 Fabricator(:tag_follow) do
   tag
-  account { Fabricate.build(:account) }
+  account
 end
