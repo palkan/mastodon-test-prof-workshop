@@ -136,12 +136,6 @@ RSpec.configure do |config|
     allow(Resolv::DNS).to receive(:open).and_raise('Real DNS queries are disabled, stub Resolv::DNS as needed') unless example.metadata[:type] == :system
   end
 
-  config.before do |example|
-    unless example.metadata[:attachment_processing]
-      allow_any_instance_of(Paperclip::Attachment).to receive(:post_process).and_return(true) # rubocop:disable RSpec/AnyInstance
-    end
-  end
-
   config.after do
     Rails.cache.clear
     redis.del(redis.keys)
