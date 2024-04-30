@@ -130,10 +130,8 @@ RSpec.configure do |config|
     self.use_transactional_tests = true
   end
 
-  sidekiq_fake_types = %i[request model service controller]
-
   config.before(:each) do |example|
-    if example.metadata[:type].in?(sidekiq_fake_types) && example.metadata[:sidekiq] != :inline
+    if example.metadata[:sidekiq] != :inline && example.metadata[:type] != :system && example.metadata[:search] != true
       Sidekiq::Testing.fake!
     else
       Sidekiq::Testing.inline!
