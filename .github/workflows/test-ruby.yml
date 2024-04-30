@@ -110,6 +110,7 @@ jobs:
       BUNDLE_WITH: 'pam_authentication test'
       GITHUB_RSPEC: ${{ matrix.ruby-version == '.ruby-version' && github.event.pull_request && 'true' }}
       RUBY_PROGRESS_BAR_LENGTH: 80
+      EVENT_PROF: "progressbar.refresh"
 
     strategy:
       fail-fast: false
