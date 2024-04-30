@@ -43,11 +43,11 @@ RSpec.describe ActivityPub::Activity::Move do
         expect(old_account.reload.moved_to_account_id).to eq new_account.id
       end
 
-      it 'makes followers unfollow old account' do
+      it 'makes followers unfollow old account', sidekiq: :inline do
         expect(follower.following?(old_account)).to be false
       end
 
-      it 'makes followers follow-request the new account' do
+      it 'makes followers follow-request the new account', sidekiq: :inline do
         expect(follower.requested?(new_account)).to be true
       end
     end

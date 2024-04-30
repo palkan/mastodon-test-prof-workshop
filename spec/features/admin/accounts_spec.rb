@@ -49,7 +49,7 @@ describe 'Admin::Accounts' do
     end
 
     context 'with action of `reject`' do
-      it 'rejects and removes the account' do
+      it 'rejects and removes the account', sidekiq: :inline do
         batch_checkbox_for(unapproved_user_account).check
 
         click_on button_for_reject
