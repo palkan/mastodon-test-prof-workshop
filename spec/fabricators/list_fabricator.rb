@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
 Fabricator(:list) do
-  account { Fabricate.build(:account) }
+  account
   title 'MyString'
 end
