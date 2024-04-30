@@ -1,6 +1,8 @@
 name: Check formatting
 on:
   push:
+    branches-ignore:
+      - 'railsconf*'
   pull_request:
 
 jobs:

@@ -2,6 +2,7 @@ name: Ruby Linting
 on:
   push:
     branches-ignore:
+      - 'railsconf*'
       - 'dependabot/**'
       - 'renovate/**'
     paths:
