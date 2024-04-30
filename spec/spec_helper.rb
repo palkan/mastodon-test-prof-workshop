@@ -7,6 +7,9 @@ end
 require 'test_prof'
 require 'test_prof/recipes/rspec/sample'
 
+require 'ruby-progressbar'
+TestProf::EventProf.monitor(ProgressBar::Output, "progressbar.refresh", :refresh)
+
 RSpec.configure do |config|
   config.example_status_persistence_file_path = 'tmp/cache/rspec/examples.txt'
   config.expect_with :rspec do |expectations|
