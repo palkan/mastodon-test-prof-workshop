@@ -30,7 +30,7 @@ RSpec.describe 'Notifications' do
     it_behaves_like 'forbidden for wrong scope', 'write write:notifications'
 
     context 'with no options' do
-      it 'returns expected notification types', :aggregate_failures do
+      it 'returns expected notification types', :aggregate_failures, sidekiq: :inline do
         subject
 
         expect(response).to have_http_status(200)
@@ -44,7 +44,7 @@ RSpec.describe 'Notifications' do
     context 'with account_id param' do
       let(:params) { { account_id: tom.account.id } }
 
-      it 'returns only notifications from specified user', :aggregate_failures do
+      it 'returns only notifications from specified user', :aggregate_failures, sidekiq: :inline do
         subject
 
         expect(response).to have_http_status(200)
@@ -70,7 +70,7 @@ RSpec.describe 'Notifications' do
     context 'with exclude_types param' do
       let(:params) { { exclude_types: %w(mention) } }
 
-      it 'returns everything but excluded type', :aggregate_failures do
+      it 'returns everything but excluded type', :aggregate_failures, sidekiq: :inline do
         subject
 
         expect(response).to have_http_status(200)
@@ -82,7 +82,7 @@ RSpec.describe 'Notifications' do
     context 'with types param' do
       let(:params) { { types: %w(mention) } }
 
-      it 'returns only requested type', :aggregate_failures do
+      it 'returns only requested type', :aggregate_failures, sidekiq: :inline do
         subject
 
         expect(response).to have_http_status(200)
@@ -93,7 +93,7 @@ RSpec.describe 'Notifications' do
     context 'with limit param' do
       let(:params) { { limit: 3 } }
 
-      it 'returns the requested number of notifications paginated', :aggregate_failures do
+      it 'returns the requested number of notifications paginated', :aggregate_failures, sidekiq: :inline do
         subject
 
         notifications = user.account.notifications
