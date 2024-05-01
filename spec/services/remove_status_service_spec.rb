@@ -5,11 +5,11 @@ require 'rails_helper'
 RSpec.describe RemoveStatusService do
   subject { described_class.new }
 
-  let!(:alice)  { Fabricate(:account) }
-  let!(:bob)    { Fabricate(:account, username: 'bob', domain: 'example.com') }
-  let!(:jeff)   { Fabricate(:account) }
-  let!(:hank)   { Fabricate(:account, username: 'hank', protocol: :activitypub, domain: 'example.com', inbox_url: 'http://example.com/inbox') }
-  let!(:bill)   { Fabricate(:account, username: 'bill', protocol: :activitypub, domain: 'example2.com', inbox_url: 'http://example2.com/inbox') }
+  let_it_be(:alice)  { Fabricate(:account) }
+  let_it_be(:bob)    { Fabricate(:account, username: 'bob', domain: 'example.com') }
+  let_it_be(:jeff)   { Fabricate(:account) }
+  let_it_be(:hank)   { Fabricate(:account, username: 'hank', protocol: :activitypub, domain: 'example.com', inbox_url: 'http://example.com/inbox') }
+  let_it_be(:bill)   { Fabricate(:account, username: 'bill', protocol: :activitypub, domain: 'example2.com', inbox_url: 'http://example2.com/inbox') }
 
   before do
     stub_request(:post, hank.inbox_url).to_return(status: 200)
@@ -20,12 +20,14 @@ RSpec.describe RemoveStatusService do
   end
 
   context 'when removed status is not a reblog' do
-    let!(:media_attachment) { Fabricate(:media_attachment, account: alice) }
-    let!(:status) { PostStatusService.new.call(alice, text: "Hello @#{bob.pretty_acct} ThisIsASecret", media_ids: [media_attachment.id]) }
+    let_it_be(:media_attachment) { Fabricate(:media_attachment, account: alice) }
+    let_it_be(:status) { PostStatusService.new.call(alice, text: "Hello @#{bob.pretty_acct} ThisIsASecret", media_ids: [media_attachment.id]) }
 
-    before do
-      FavouriteService.new.call(jeff, status)
-      Fabricate(:status, account: bill, reblog: status, uri: 'hoge')
+    before_all do
+      Sidekiq::Testing.inline! do
+        FavouriteService.new.call(jeff, status)
+        Fabricate(:status, account: bill, reblog: status, uri: 'hoge')
+      end
     end
 
     it 'removes status from author\'s home feed' do
@@ -77,7 +79,7 @@ RSpec.describe RemoveStatusService do
     it 'remove status from notifications', sidekiq: :inline do
       expect { subject.call(status) }.to change {
         Notification.where(activity_type: 'Favourite', from_account: jeff, account: alice).count
-      }.from(1).to(0)
+      }.by(-1)
     end
   end
 

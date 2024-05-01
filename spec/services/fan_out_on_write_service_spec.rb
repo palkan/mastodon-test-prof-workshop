@@ -5,13 +5,13 @@ require 'rails_helper'
 RSpec.describe FanOutOnWriteService do
   subject { described_class.new }
 
-  let(:last_active_at) { Time.now.utc }
+  let_it_be(:last_active_at) { Time.now.utc }
   let(:status) { Fabricate(:status, account: alice, visibility: visibility, text: 'Hello @bob @eve #hoge') }
 
-  let!(:alice) { Fabricate(:user, current_sign_in_at: last_active_at).account }
-  let!(:bob)   { Fabricate(:user, current_sign_in_at: last_active_at, account_attributes: { username: 'bob' }).account }
-  let!(:tom)   { Fabricate(:user, current_sign_in_at: last_active_at).account }
-  let!(:eve)   { Fabricate(:user, current_sign_in_at: last_active_at, account_attributes: { username: 'eve' }).account }
+  let_it_be(:alice) { Fabricate(:user, current_sign_in_at: last_active_at).account }
+  let_it_be(:bob)   { Fabricate(:user, current_sign_in_at: last_active_at, account_attributes: { username: 'bob' }).account }
+  let_it_be(:tom)   { Fabricate(:user, current_sign_in_at: last_active_at).account }
+  let_it_be(:eve)   { Fabricate(:user, current_sign_in_at: last_active_at, account_attributes: { username: 'eve' }).account }
 
   before do
     bob.follow!(alice)

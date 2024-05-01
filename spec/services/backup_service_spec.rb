@@ -2,16 +2,15 @@
 
 require 'rails_helper'
 
-RSpec.describe BackupService do
+RSpec.describe BackupService, :user do
   subject(:service_call) { described_class.new.call(backup) }
 
-  let!(:user)           { Fabricate(:user) }
-  let!(:attachment)     { Fabricate(:media_attachment, account: user.account) }
-  let!(:status)         { Fabricate(:status, account: user.account, text: 'Hello', visibility: :public, media_attachments: [attachment]) }
-  let!(:private_status) { Fabricate(:status, account: user.account, text: 'secret', visibility: :private) }
-  let!(:favourite)      { Fabricate(:favourite, account: user.account) }
-  let!(:bookmark)       { Fabricate(:bookmark, account: user.account) }
-  let!(:backup)         { Fabricate(:backup, user: user) }
+  let_it_be(:attachment)     { Fabricate(:media_attachment, account: user.account) }
+  let_it_be(:status)         { Fabricate(:status, account: user.account, text: 'Hello', visibility: :public, media_attachments: [attachment]) }
+  let_it_be(:private_status) { Fabricate(:status, account: user.account, text: 'secret', visibility: :private) }
+  let_it_be(:favourite)      { Fabricate(:favourite, account: user.account) }
+  let_it_be(:bookmark)       { Fabricate(:bookmark, account: user.account) }
+  let_it_be(:backup)         { Fabricate(:backup, user: user) }
 
   def read_zip_file(backup, filename)
     file = Paperclip.io_adapters.for(backup.dump)

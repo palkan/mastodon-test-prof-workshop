@@ -5,9 +5,9 @@ require 'rails_helper'
 RSpec.describe ImportService do
   include RoutingHelper
 
-  let!(:account) { Fabricate(:account, locked: false) }
-  let!(:bob)     { Fabricate(:account, username: 'bob', locked: false) }
-  let!(:eve)     { Fabricate(:account, username: 'eve', domain: 'example.com', locked: false, protocol: :activitypub, inbox_url: 'https://example.com/inbox') }
+  let_it_be(:account) { Fabricate(:account, locked: false) }
+  let_it_be(:bob)     { Fabricate(:account, username: 'bob', locked: false) }
+  let_it_be(:eve)     { Fabricate(:account, username: 'eve', domain: 'example.com', locked: false, protocol: :activitypub, inbox_url: 'https://example.com/inbox') }
 
   before do
     stub_request(:post, 'https://example.com/inbox').to_return(status: 200)

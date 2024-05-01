@@ -5,14 +5,16 @@ require 'rails_helper'
 RSpec.describe TranslateStatusService do
   subject(:service) { described_class.new }
 
-  let(:status) { Fabricate(:status, text: text, spoiler_text: spoiler_text, language: 'en', preloadable_poll: poll, media_attachments: media_attachments) }
+  let_it_be(:status) { Fabricate(:status, language: 'en') }
+  let_it_be(:higfive) { Fabricate(:custom_emoji, shortcode: 'highfive') }
+
   let(:text) { 'Hello' }
   let(:spoiler_text) { '' }
   let(:poll) { nil }
   let(:media_attachments) { [] }
 
   before do
-    Fabricate(:custom_emoji, shortcode: 'highfive')
+    status.update!(preloadable_poll: poll, text: text, spoiler_text: spoiler_text, media_attachments: media_attachments)
   end
 
   describe '#call' do
@@ -121,7 +123,7 @@ RSpec.describe TranslateStatusService do
     end
 
     describe 'status content contains custom emoji' do
-      let(:status) { Fabricate(:status, text: 'Hello :highfive:') }
+      let(:text) { 'Hello :highfive:' }
 
       it 'returns formatted content' do
         source_texts = service.send(:source_texts)
@@ -130,7 +132,7 @@ RSpec.describe TranslateStatusService do
     end
 
     describe 'status content contains tags' do
-      let(:status) { Fabricate(:status, text: 'Hello #hola') }
+      let(:text) { 'Hello #hola' }
 
       it 'returns formatted content' do
         source_texts = service.send(:source_texts)
@@ -140,7 +142,7 @@ RSpec.describe TranslateStatusService do
     end
 
     describe 'status has spoiler text' do
-      let(:status) { Fabricate(:status, spoiler_text: 'Hello :highfive:') }
+      let(:spoiler_text) { 'Hello :highfive:' }
 
       it 'returns formatted spoiler text' do
         source_texts = service.send(:source_texts)

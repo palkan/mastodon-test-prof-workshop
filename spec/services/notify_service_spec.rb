@@ -2,13 +2,13 @@
 
 require 'rails_helper'
 
-RSpec.describe NotifyService do
+RSpec.describe NotifyService, :user do
   subject { described_class.new.call(recipient, type, activity) }
 
-  let(:user) { Fabricate(:user) }
-  let(:recipient) { user.account }
-  let(:sender) { Fabricate(:account, domain: 'example.com') }
-  let(:activity) { Fabricate(:follow, account: sender, target_account: recipient) }
+  let_it_be(:recipient) { user.account }
+  let_it_be(:sender) { Fabricate(:account, domain: 'example.com') }
+  let_it_be(:activity) { Fabricate(:follow, account: sender, target_account: recipient) }
+
   let(:type) { :follow }
 
   it { expect { subject }.to change(Notification, :count).by(1) }
@@ -50,9 +50,8 @@ RSpec.describe NotifyService do
     expect { subject }.to_not change(Notification, :count)
   end
 
-  describe 'reblogs' do
-    let(:status)   { Fabricate(:status, account: Fabricate(:account)) }
-    let(:activity) { Fabricate(:status, account: sender, reblog: status) }
+  describe 'reblogs', :status do
+    let_it_be(:activity) { Fabricate(:status, account: sender, reblog: status) }
     let(:type)     { :reblog }
 
     it 'shows reblogs by default' do
@@ -89,7 +88,7 @@ RSpec.describe NotifyService do
   end
 
   context 'with sender as recipient' do
-    let(:sender) { recipient }
+    before { activity.update!(account: recipient) }
 
     it 'does not notify when recipient is the sender' do
       expect { subject }.to_not change(Notification, :count)
@@ -132,8 +131,8 @@ RSpec.describe NotifyService do
   describe NotifyService::FilterCondition do
     subject { described_class.new(notification) }
 
-    let(:activity) { Fabricate(:mention, status: Fabricate(:status)) }
-    let(:notification) { Fabricate(:notification, type: :mention, activity: activity, from_account: activity.status.account, account: activity.account) }
+    let_it_be(:activity) { Fabricate(:mention, status: Fabricate(:status)) }
+    let_it_be(:notification) { Fabricate(:notification, type: :mention, activity: activity, from_account: activity.status.account, account: activity.account) }
 
     describe '#filter?' do
       context 'when sender is silenced' do
@@ -157,7 +156,7 @@ RSpec.describe NotifyService do
       end
 
       context 'when recipient is filtering not-followed senders' do
-        before do
+        before_all do
           Fabricate(:notification_policy, account: notification.account, filter_not_following: true)
         end
 
@@ -187,7 +186,7 @@ RSpec.describe NotifyService do
       end
 
       context 'when recipient is filtering not-followers' do
-        before do
+        before_all do
           Fabricate(:notification_policy, account: notification.account, filter_not_followers: true)
         end
 
@@ -228,7 +227,7 @@ RSpec.describe NotifyService do
       end
 
       context 'when recipient is filtering new accounts' do
-        before do
+        before_all do
           Fabricate(:notification_policy, account: notification.account, filter_new_accounts: true)
         end
 

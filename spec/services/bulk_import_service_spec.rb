@@ -2,10 +2,9 @@
 
 require 'rails_helper'
 
-RSpec.describe BulkImportService do
+RSpec.describe BulkImportService, :account do
   subject { described_class.new }
 
-  let(:account) { Fabricate(:account) }
   let(:import) { Fabricate(:bulk_import, account: account, type: import_type, overwrite: overwrite, state: :in_progress, imported_items: 0, processed_items: 0) }
 
   before do

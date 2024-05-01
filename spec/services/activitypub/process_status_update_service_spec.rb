@@ -9,7 +9,7 @@ end
 RSpec.describe ActivityPub::ProcessStatusUpdateService do
   subject { described_class.new }
 
-  let!(:status) { Fabricate(:status, text: 'Hello world', account: Fabricate(:account, domain: 'example.com')) }
+  let_it_be(:status) { Fabricate(:status, text: 'Hello world', account: Fabricate(:account, domain: 'example.com')) }
   let(:payload) do
     {
       '@context': 'https://www.w3.org/ns/activitystreams',

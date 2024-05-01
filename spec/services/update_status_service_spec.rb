@@ -2,12 +2,13 @@
 
 require 'rails_helper'
 
-RSpec.describe UpdateStatusService do
+RSpec.describe UpdateStatusService, :account do
   subject { described_class.new }
 
-  context 'when nothing changes' do
-    let!(:status) { Fabricate(:status, text: 'Foo', language: 'en') }
+  let_it_be(:status) { Fabricate(:status, text: 'Foo', language: 'en') }
+  let_it_be(:preview_card) { Fabricate(:preview_card) }
 
+  context 'when nothing changes' do
     before do
       allow(ActivityPub::DistributionWorker).to receive(:perform_async)
       subject.call(status, status.account_id, text: 'Foo')
@@ -23,9 +24,6 @@ RSpec.describe UpdateStatusService do
   end
 
   context 'when text changes' do
-    let(:status) { Fabricate(:status, text: 'Foo') }
-    let(:preview_card) { Fabricate(:preview_card) }
-
     before do
       PreviewCardsStatus.create(status: status, preview_card: preview_card)
       subject.call(status, status.account_id, text: 'Bar')
@@ -45,10 +43,8 @@ RSpec.describe UpdateStatusService do
   end
 
   context 'when content warning changes' do
-    let(:status) { Fabricate(:status, text: 'Foo', spoiler_text: '') }
-    let(:preview_card) { Fabricate(:preview_card) }
-
     before do
+      status.update(spoiler_text: '')
       PreviewCardsStatus.create(status: status, preview_card: preview_card)
       subject.call(status, status.account_id, text: 'Foo', spoiler_text: 'Bar')
     end
@@ -63,9 +59,8 @@ RSpec.describe UpdateStatusService do
   end
 
   context 'when media attachments change' do
-    let!(:status) { Fabricate(:status, text: 'Foo') }
-    let!(:detached_media_attachment) { Fabricate(:media_attachment, account: status.account) }
-    let!(:attached_media_attachment) { Fabricate(:media_attachment, account: status.account) }
+    let_it_be(:detached_media_attachment) { Fabricate(:media_attachment, account: status.account) }
+    let_it_be(:attached_media_attachment) { Fabricate(:media_attachment, account: status.account) }
 
     before do
       status.media_attachments << detached_media_attachment
@@ -90,8 +85,7 @@ RSpec.describe UpdateStatusService do
   end
 
   context 'when already-attached media changes' do
-    let!(:status) { Fabricate(:status, text: 'Foo') }
-    let!(:media_attachment) { Fabricate(:media_attachment, account: status.account, description: 'Old description') }
+    let_it_be(:media_attachment) { Fabricate(:media_attachment, account: status.account, description: 'Old description') }
 
     before do
       status.media_attachments << media_attachment
@@ -112,10 +106,9 @@ RSpec.describe UpdateStatusService do
   end
 
   context 'when poll changes' do
-    let(:account) { Fabricate(:account) }
-    let!(:status) { Fabricate(:status, text: 'Foo', account: account, poll_attributes: { options: %w(Foo Bar), account: account, multiple: false, hide_totals: false, expires_at: 7.days.from_now }) }
-    let!(:poll)   { status.poll }
-    let!(:voter) { Fabricate(:account) }
+    let_it_be(:status) { Fabricate(:status, text: 'Foo', account: account, poll_attributes: { options: %w(Foo Bar), account: account, multiple: false, hide_totals: false, expires_at: 7.days.from_now }) }
+    let_it_be(:poll)   { status.poll }
+    let_it_be(:voter) { Fabricate(:account) }
 
     before do
       Sidekiq::Testing.fake!
@@ -146,11 +139,10 @@ RSpec.describe UpdateStatusService do
     end
   end
 
-  context 'when mentions in text change' do
-    let!(:account) { Fabricate(:account) }
-    let!(:alice) { Fabricate(:account, username: 'alice') }
-    let!(:bob) { Fabricate(:account, username: 'bob') }
-    let!(:status) { PostStatusService.new.call(account, text: 'Hello @alice') }
+  context 'when mentions in text change', :account do
+    let_it_be(:alice) { Fabricate(:account, username: 'alice') }
+    let_it_be(:bob) { Fabricate(:account, username: 'bob') }
+    let_it_be(:status) { PostStatusService.new.call(account, text: 'Hello @alice') }
 
     before do
       subject.call(status, status.account_id, text: 'Hello @bob')
@@ -166,8 +158,7 @@ RSpec.describe UpdateStatusService do
   end
 
   context 'when hashtags in text change' do
-    let!(:account) { Fabricate(:account) }
-    let!(:status) { PostStatusService.new.call(account, text: 'Hello #foo') }
+    let_it_be(:status) { PostStatusService.new.call(account, text: 'Hello #foo') }
 
     before do
       subject.call(status, status.account_id, text: 'Hello #bar')
