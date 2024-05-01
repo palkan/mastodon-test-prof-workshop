@@ -3,27 +3,26 @@
 require 'rails_helper'
 
 RSpec.describe Trends::Statuses do
-  subject! { described_class.new(threshold: 5, review_threshold: 10, score_halflife: 8.hours) }
+  let_it_be(:statuses) { described_class.new(threshold: 5, review_threshold: 10, score_halflife: 8.hours) }
+  subject { statuses }
 
-  let!(:at_time) { DateTime.new(2021, 11, 14, 10, 15, 0) }
+  let_it_be(:at_time) { DateTime.new(2021, 11, 14, 10, 15, 0) }
 
   describe 'Trends::Statuses::Query' do
-    let!(:query) { subject.query }
-    let!(:today) { at_time }
+    let(:query) { statuses.query }
+    let_it_be(:today) { at_time }
 
-    let!(:status_foo) { Fabricate(:status, text: 'Foo', language: 'en', trendable: true, created_at: today) }
-    let!(:status_bar) { Fabricate(:status, text: 'Bar', language: 'en', trendable: true, created_at: today) }
+    let_it_be(:status_foo) { Fabricate(:status, text: 'Foo', language: 'en', trendable: true, created_at: today) }
+    let_it_be(:status_bar) { Fabricate(:status, text: 'Bar', language: 'en', trendable: true, created_at: today) }
 
-    before do
+    before_all do
       default_threshold_value.times { reblog(status_foo, today) }
       default_threshold_value.times { reblog(status_bar, today) }
 
-      subject.refresh(today)
+      statuses.refresh(today)
     end
 
-    describe '#filtered_for' do
-      let(:account) { Fabricate(:account) }
-
+    describe '#filtered_for', :account do
       it 'returns a composable query scope' do
         expect(query.filtered_for(account)).to be_a Trends::Query
       end
@@ -45,9 +44,7 @@ RSpec.describe Trends::Statuses do
     end
   end
 
-  describe '#add' do
-    let(:status) { Fabricate(:status) }
-
+  describe '#add', :status do
     before do
       subject.add(status, 1, at_time)
     end
@@ -68,12 +65,14 @@ RSpec.describe Trends::Statuses do
   end
 
   describe '#refresh' do
-    let!(:today) { at_time }
-    let!(:yesterday) { today - 1.day }
+    let(:statuses) { described_class.new(threshold: 5, review_threshold: 10, score_halflife: 8.hours) }
 
-    let!(:status_foo) { Fabricate(:status, text: 'Foo', language: 'en', trendable: true, created_at: yesterday) }
-    let!(:status_bar) { Fabricate(:status, text: 'Bar', language: 'en', trendable: true, created_at: today) }
-    let!(:status_baz) { Fabricate(:status, text: 'Baz', language: 'en', trendable: true, created_at: today) }
+    let_it_be(:today) { at_time }
+    let_it_be(:yesterday) { today - 1.day }
+
+    let_it_be(:status_foo) { Fabricate(:status, text: 'Foo', language: 'en', trendable: true, created_at: yesterday) }
+    let_it_be(:status_bar) { Fabricate(:status, text: 'Bar', language: 'en', trendable: true, created_at: today) }
+    let_it_be(:status_baz) { Fabricate(:status, text: 'Baz', language: 'en', trendable: true, created_at: today) }
 
     before do
       default_threshold_value.times { reblog(status_foo, today) }
@@ -106,7 +105,7 @@ RSpec.describe Trends::Statuses do
 
   def reblog(status, at_time)
     reblog = Fabricate(:status, reblog: status, created_at: at_time)
-    subject.add(status, reblog.account_id, at_time)
+    statuses.add(status, reblog.account_id, at_time)
   end
 
   def default_threshold_value

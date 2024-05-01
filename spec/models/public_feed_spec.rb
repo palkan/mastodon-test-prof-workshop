@@ -110,10 +110,10 @@ RSpec.describe PublicFeed, :account do
     context 'with a remote_only option set' do
       subject { described_class.new(viewer, remote: true).get(20).map(&:id) }
 
-      let!(:local_account)  { Fabricate(:account, domain: nil) }
-      let!(:remote_account) { Fabricate(:account, domain: 'test.com') }
-      let!(:local_status)   { Fabricate(:status, account: local_account) }
-      let!(:remote_status)  { Fabricate(:status, account: remote_account) }
+      let_it_be(:local_account)  { Fabricate(:account, domain: nil) }
+      let_it_be(:remote_account) { Fabricate(:account, domain: 'test.com') }
+      let_it_be(:local_status)   { Fabricate(:status, account: local_account) }
+      let_it_be(:remote_status)  { Fabricate(:status, account: remote_account) }
 
       context 'without a viewer' do
         let(:viewer) { nil }
@@ -136,8 +136,6 @@ RSpec.describe PublicFeed, :account do
 
     describe 'with an account passed in' do
       subject { described_class.new(account).get(20).map(&:id) }
-
-      let!(:account) { Fabricate(:account) }
 
       it 'excludes statuses from accounts blocked by the account' do
         blocked = Fabricate(:account)

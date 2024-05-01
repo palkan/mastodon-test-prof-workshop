@@ -5,13 +5,13 @@ require 'devise_two_factor/spec_helpers'
 
 RSpec.describe User do
   let(:password) { 'abcd1234' }
-  let(:account) { Fabricate(:account, username: 'alice') }
+  let_it_be(:account) { Fabricate(:account, username: 'alice') }
 
   it_behaves_like 'two_factor_backupable'
 
   describe 'otp_secret' do
     it 'is encrypted with OTP_SECRET environment variable' do
-      user = Fabricate(:user,
+      user = Fabricate.build(:user,
                        encrypted_otp_secret: "Fttsy7QAa0edaDfdfSz094rRLAxc8cJweDQ4BsWH/zozcdVA8o9GLqcKhn2b\nGi/V\n",
                        encrypted_otp_secret_iv: 'rys3THICkr60BoWC',
                        encrypted_otp_secret_salt: '_LMkAGvdg7a+sDIKjI3mR2Q==')
@@ -91,6 +91,8 @@ RSpec.describe User do
   end
 
   describe 'scopes' do
+    before { account.delete }
+
     describe 'recent' do
       it 'returns an array of recent users ordered by id' do
         first_user = Fabricate(:user)

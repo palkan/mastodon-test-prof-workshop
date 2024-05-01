@@ -4,11 +4,13 @@ require 'rails_helper'
 
 RSpec.describe Notification do
   describe '#target_status' do
-    let(:notification) { Fabricate(:notification, activity: activity) }
-    let(:status)       { Fabricate(:status) }
-    let(:reblog)       { Fabricate(:status, reblog: status) }
-    let(:favourite)    { Fabricate(:favourite, status: status) }
-    let(:mention)      { Fabricate(:mention, status: status) }
+    let_it_be(:notification) { Fabricate(:notification) }
+    let_it_be(:status)       { Fabricate(:status) }
+    let_it_be(:reblog)       { Fabricate(:status, reblog: status) }
+    let_it_be(:favourite)    { Fabricate(:favourite, status: status) }
+    let_it_be(:mention)      { Fabricate(:mention, status: status) }
+
+    before { notification.update!(activity: activity) }
 
     context 'when Activity is reblog' do
       let(:activity) { reblog }
@@ -161,15 +163,15 @@ RSpec.describe Notification do
         notifications.each(&:reload)
       end
 
-      let(:mention) { Fabricate(:mention) }
-      let(:status) { Fabricate(:status) }
-      let(:reblog) { Fabricate(:status, reblog: Fabricate(:status)) }
-      let(:follow) { Fabricate(:follow) }
-      let(:follow_request) { Fabricate(:follow_request) }
-      let(:favourite) { Fabricate(:favourite) }
-      let(:poll) { Fabricate(:poll) }
+      let_it_be(:mention) { Fabricate(:mention) }
+      let_it_be(:status) { Fabricate(:status) }
+      let_it_be(:reblog) { Fabricate(:status, reblog: Fabricate(:status)) }
+      let_it_be(:follow) { Fabricate(:follow) }
+      let_it_be(:follow_request) { Fabricate(:follow_request) }
+      let_it_be(:favourite) { Fabricate(:favourite) }
+      let_it_be(:poll) { Fabricate(:poll) }
 
-      let(:notifications) do
+      let_it_be(:notifications) do
         [
           Fabricate(:notification, type: :mention, activity: mention),
           Fabricate(:notification, type: :status, activity: status),

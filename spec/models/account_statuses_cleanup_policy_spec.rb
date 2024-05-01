@@ -3,7 +3,7 @@
 require 'rails_helper'
 
 RSpec.describe AccountStatusesCleanupPolicy do
-  let(:account) { Fabricate(:account, username: 'alice', domain: nil) }
+  let_it_be(:account) { Fabricate(:account, username: 'alice', domain: nil) }
 
   describe 'validation' do
     it 'disallow remote accounts' do
@@ -16,7 +16,7 @@ RSpec.describe AccountStatusesCleanupPolicy do
 
   describe 'save hooks' do
     context 'when widening a policy' do
-      let!(:account_statuses_cleanup_policy) do
+      let_it_be(:account_statuses_cleanup_policy) do
         Fabricate(:account_statuses_cleanup_policy,
                   account: account,
                   keep_direct: true,
@@ -136,8 +136,8 @@ RSpec.describe AccountStatusesCleanupPolicy do
   describe '#invalidate_last_inspected' do
     subject { account_statuses_cleanup_policy.invalidate_last_inspected(status, action) }
 
-    let(:account_statuses_cleanup_policy) { Fabricate(:account_statuses_cleanup_policy, account: account) }
-    let(:status) { Fabricate(:status, id: 10, account: account) }
+    let_it_be(:account_statuses_cleanup_policy) { Fabricate(:account_statuses_cleanup_policy, account: account) }
+    let_it_be(:status) { Fabricate(:status, id: 10, account: account) }
 
     before do
       account_statuses_cleanup_policy.record_last_inspected(42)

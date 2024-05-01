@@ -2,8 +2,8 @@
 
 shared_examples 'AccountHeader' do |fabricator|
   describe 'base64-encoded files' do
-    let(:base64_attachment) { "data:image/jpeg;base64,#{Base64.encode64(attachment_fixture('attachment.jpg').read)}" }
-    let(:account) { Fabricate(fabricator, header: base64_attachment) }
+    let_it_be(:base64_attachment) { "data:image/jpeg;base64,#{Base64.encode64(attachment_fixture('attachment.jpg').read)}" }
+    let_it_be(:account) { Fabricate(fabricator, header: base64_attachment) }
 
     it 'saves header' do
       expect(account.persisted?).to be true

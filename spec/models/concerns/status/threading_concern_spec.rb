@@ -4,14 +4,14 @@ require 'rails_helper'
 
 describe Status::ThreadingConcern do
   describe '#ancestors' do
-    let!(:alice)  { Fabricate(:account, username: 'alice') }
-    let!(:bob)    { Fabricate(:account, username: 'bob', domain: 'example.com') }
-    let!(:jeff)   { Fabricate(:account, username: 'jeff') }
-    let!(:status) { Fabricate(:status, account: alice) }
-    let!(:reply_to_status) { Fabricate(:status, thread: status, account: jeff) }
-    let!(:reply_to_first_reply) { Fabricate(:status, thread: reply_to_status, account: bob) }
-    let!(:reply_to_second_reply) { Fabricate(:status, thread: reply_to_first_reply, account: alice) }
-    let!(:viewer) { Fabricate(:account, username: 'viewer') }
+    let_it_be(:alice)  { Fabricate(:account, username: 'alice') }
+    let_it_be(:bob)    { Fabricate(:account, username: 'bob', domain: 'example.com') }
+    let_it_be(:jeff)   { Fabricate(:account, username: 'jeff') }
+    let_it_be(:status) { Fabricate(:status, account: alice) }
+    let_it_be(:reply_to_status) { Fabricate(:status, thread: status, account: jeff) }
+    let_it_be(:reply_to_first_reply) { Fabricate(:status, thread: reply_to_status, account: bob) }
+    let_it_be(:reply_to_second_reply) { Fabricate(:status, thread: reply_to_first_reply, account: alice) }
+    let_it_be(:viewer) { Fabricate(:account, username: 'viewer') }
 
     it 'returns conversation history' do
       expect(reply_to_second_reply.ancestors(4)).to include(status, reply_to_status, reply_to_first_reply)
@@ -79,14 +79,14 @@ describe Status::ThreadingConcern do
   end
 
   describe '#descendants' do
-    let!(:alice)  { Fabricate(:account, username: 'alice') }
-    let!(:bob)    { Fabricate(:account, username: 'bob', domain: 'example.com') }
-    let!(:jeff)   { Fabricate(:account, username: 'jeff') }
-    let!(:status) { Fabricate(:status, account: alice) }
-    let!(:reply_to_status_from_alice) { Fabricate(:status, thread: status, account: alice) }
-    let!(:reply_to_status_from_bob) { Fabricate(:status, thread: status, account: bob) }
-    let!(:reply_to_alice_reply_from_jeff) { Fabricate(:status, thread: reply_to_status_from_alice, account: jeff) }
-    let!(:viewer) { Fabricate(:account, username: 'viewer') }
+    let_it_be(:alice)  { Fabricate(:account, username: 'alice') }
+    let_it_be(:bob)    { Fabricate(:account, username: 'bob', domain: 'example.com') }
+    let_it_be(:jeff)   { Fabricate(:account, username: 'jeff') }
+    let_it_be(:status) { Fabricate(:status, account: alice) }
+    let_it_be(:reply_to_status_from_alice) { Fabricate(:status, thread: status, account: alice) }
+    let_it_be(:reply_to_status_from_bob) { Fabricate(:status, thread: status, account: bob) }
+    let_it_be(:reply_to_alice_reply_from_jeff) { Fabricate(:status, thread: reply_to_status_from_alice, account: jeff) }
+    let_it_be(:viewer) { Fabricate(:account, username: 'viewer') }
 
     it 'returns replies' do
       expect(status.descendants(4)).to include(reply_to_status_from_alice, reply_to_status_from_bob, reply_to_alice_reply_from_jeff)

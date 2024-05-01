@@ -18,8 +18,8 @@ shared_examples 'AccountAvatar' do |fabricator|
   end
 
   describe 'base64-encoded files' do
-    let(:base64_attachment) { "data:image/jpeg;base64,#{Base64.encode64(attachment_fixture('attachment.jpg').read)}" }
-    let(:account) { Fabricate(fabricator, avatar: base64_attachment) }
+    let_it_be(:base64_attachment) { "data:image/jpeg;base64,#{Base64.encode64(attachment_fixture('attachment.jpg').read)}" }
+    let_it_be(:account) { Fabricate(fabricator, avatar: base64_attachment) }
 
     it 'saves avatar' do
       expect(account.persisted?).to be true

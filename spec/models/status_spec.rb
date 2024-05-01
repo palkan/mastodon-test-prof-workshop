@@ -2,12 +2,13 @@
 
 require 'rails_helper'
 
-RSpec.describe Status do
-  subject { Fabricate(:status, account: alice) }
+RSpec.describe Status, :account do
+  let_it_be(:alice) { Fabricate(:account, username: 'alice') }
+  let_it_be(:bob)   { Fabricate(:account, username: 'bob') }
+  let_it_be(:other) { Fabricate(:status, account: bob, text: 'Skulls for the skull god! The enemy\'s gates are sideways!') }
+  let_it_be(:status) { Fabricate(:status, account: alice) }
 
-  let(:alice) { Fabricate(:account, username: 'alice') }
-  let(:bob)   { Fabricate(:account, username: 'bob') }
-  let(:other) { Fabricate(:status, account: bob, text: 'Skulls for the skull god! The enemy\'s gates are sideways!') }
+  subject { status }
 
   describe '#local?' do
     it 'returns true when no remote URI is set' do
@@ -208,9 +209,6 @@ RSpec.describe Status do
   describe '.mutes_map' do
     subject { described_class.mutes_map([status.conversation.id], account) }
 
-    let(:status)  { Fabricate(:status) }
-    let(:account) { Fabricate(:account) }
-
     it 'returns a hash' do
       expect(subject).to be_a Hash
     end
@@ -223,9 +221,6 @@ RSpec.describe Status do
 
   describe '.favourites_map' do
     subject { described_class.favourites_map([status], account) }
-
-    let(:status)  { Fabricate(:status) }
-    let(:account) { Fabricate(:account) }
 
     it 'returns a hash' do
       expect(subject).to be_a Hash
@@ -240,9 +235,6 @@ RSpec.describe Status do
   describe '.reblogs_map' do
     subject { described_class.reblogs_map([status], account) }
 
-    let(:status)  { Fabricate(:status) }
-    let(:account) { Fabricate(:account) }
-
     it 'returns a hash' do
       expect(subject).to be_a Hash
     end
@@ -254,14 +246,14 @@ RSpec.describe Status do
   end
 
   describe '.tagged_with' do
-    let(:tag_cats) { Fabricate(:tag, name: 'cats') }
-    let(:tag_dogs) { Fabricate(:tag, name: 'dogs') }
-    let(:tag_zebras) { Fabricate(:tag, name: 'zebras') }
-    let!(:status_with_tag_cats) { Fabricate(:status, tags: [tag_cats]) }
-    let!(:status_with_tag_dogs) { Fabricate(:status, tags: [tag_dogs]) }
-    let!(:status_tagged_with_zebras) { Fabricate(:status, tags: [tag_zebras]) }
-    let!(:status_without_tags) { Fabricate(:status, tags: []) }
-    let!(:status_with_all_tags) { Fabricate(:status, tags: [tag_cats, tag_dogs, tag_zebras]) }
+    let_it_be(:tag_cats) { Fabricate(:tag, name: 'cats') }
+    let_it_be(:tag_dogs) { Fabricate(:tag, name: 'dogs') }
+    let_it_be(:tag_zebras) { Fabricate(:tag, name: 'zebras') }
+    let_it_be(:status_with_tag_cats) { Fabricate(:status, tags: [tag_cats]) }
+    let_it_be(:status_with_tag_dogs) { Fabricate(:status, tags: [tag_dogs]) }
+    let_it_be(:status_tagged_with_zebras) { Fabricate(:status, tags: [tag_zebras]) }
+    let_it_be(:status_without_tags) { Fabricate(:status, tags: []) }
+    let_it_be(:status_with_all_tags) { Fabricate(:status, tags: [tag_cats, tag_dogs, tag_zebras]) }
 
     context 'when given one tag' do
       it 'returns the expected statuses' do
@@ -293,14 +285,14 @@ RSpec.describe Status do
   end
 
   describe '.tagged_with_all' do
-    let(:tag_cats) { Fabricate(:tag, name: 'cats') }
-    let(:tag_dogs) { Fabricate(:tag, name: 'dogs') }
-    let(:tag_zebras) { Fabricate(:tag, name: 'zebras') }
-    let!(:status_with_tag_cats) { Fabricate(:status, tags: [tag_cats]) }
-    let!(:status_with_tag_dogs) { Fabricate(:status, tags: [tag_dogs]) }
-    let!(:status_tagged_with_zebras) { Fabricate(:status, tags: [tag_zebras]) }
-    let!(:status_without_tags) { Fabricate(:status, tags: []) }
-    let!(:status_with_all_tags) { Fabricate(:status, tags: [tag_cats, tag_dogs]) }
+    let_it_be(:tag_cats) { Fabricate(:tag, name: 'cats') }
+    let_it_be(:tag_dogs) { Fabricate(:tag, name: 'dogs') }
+    let_it_be(:tag_zebras) { Fabricate(:tag, name: 'zebras') }
+    let_it_be(:status_with_tag_cats) { Fabricate(:status, tags: [tag_cats]) }
+    let_it_be(:status_with_tag_dogs) { Fabricate(:status, tags: [tag_dogs]) }
+    let_it_be(:status_tagged_with_zebras) { Fabricate(:status, tags: [tag_zebras]) }
+    let_it_be(:status_without_tags) { Fabricate(:status, tags: []) }
+    let_it_be(:status_with_all_tags) { Fabricate(:status, tags: [tag_cats, tag_dogs]) }
 
     context 'when given one tag' do
       it 'returns the expected statuses' do
@@ -329,14 +321,14 @@ RSpec.describe Status do
   end
 
   describe '.tagged_with_none' do
-    let(:tag_cats) { Fabricate(:tag, name: 'cats') }
-    let(:tag_dogs) { Fabricate(:tag, name: 'dogs') }
-    let(:tag_zebras) { Fabricate(:tag, name: 'zebras') }
-    let!(:status_with_tag_cats) { Fabricate(:status, tags: [tag_cats]) }
-    let!(:status_with_tag_dogs) { Fabricate(:status, tags: [tag_dogs]) }
-    let!(:status_tagged_with_zebras) { Fabricate(:status, tags: [tag_zebras]) }
-    let!(:status_without_tags) { Fabricate(:status, tags: []) }
-    let!(:status_with_all_tags) { Fabricate(:status, tags: [tag_cats, tag_dogs, tag_zebras]) }
+    let_it_be(:tag_cats) { Fabricate(:tag, name: 'cats') }
+    let_it_be(:tag_dogs) { Fabricate(:tag, name: 'dogs') }
+    let_it_be(:tag_zebras) { Fabricate(:tag, name: 'zebras') }
+    let_it_be(:status_with_tag_cats) { Fabricate(:status, tags: [tag_cats]) }
+    let_it_be(:status_with_tag_dogs) { Fabricate(:status, tags: [tag_dogs]) }
+    let_it_be(:status_tagged_with_zebras) { Fabricate(:status, tags: [tag_zebras]) }
+    let_it_be(:status_without_tags) { Fabricate(:status, tags: []) }
+    let_it_be(:status_with_all_tags) { Fabricate(:status, tags: [tag_cats, tag_dogs, tag_zebras]) }
 
     context 'when given one tag' do
       it 'returns the expected statuses' do

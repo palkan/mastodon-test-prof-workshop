@@ -3,10 +3,10 @@
 require 'rails_helper'
 
 RSpec.describe Account do
-  context 'with an account record' do
-    subject { Fabricate(:account) }
+  context 'with an account record', :account do
+    subject { account }
 
-    let(:bob) { Fabricate(:account, username: 'bob') }
+    let_it_be(:bob) { Fabricate(:account, username: 'bob') }
 
     describe '#suspend!' do
       it 'marks the account as suspended and creates a deletion request' do
@@ -18,7 +18,7 @@ RSpec.describe Account do
       context 'when the account is of a local user' do
         subject { local_user_account }
 
-        let!(:local_user_account) { Fabricate(:user, email: 'foo+bar@domain.org').account }
+        let_it_be(:local_user_account) { Fabricate(:user, email: 'foo+bar@domain.org').account }
 
         it 'creates a canonical domain block' do
           subject.suspend!
@@ -87,7 +87,8 @@ RSpec.describe Account do
   end
 
   describe 'Local domain user methods' do
-    subject { Fabricate(:account, domain: nil, username: 'alice') }
+    let_it_be(:alice) { Fabricate(:account, domain: nil, username: 'alice') }
+    subject { alice }
 
     around do |example|
       before = Rails.configuration.x.local_domain
@@ -124,16 +125,15 @@ RSpec.describe Account do
     end
   end
 
-  describe '#save_with_optional_media!' do
+  describe '#save_with_optional_media!', :account do
     before do
       stub_request(:get, 'https://remote.test/valid_avatar').to_return(request_fixture('avatar.txt'))
       stub_request(:get, 'https://remote.test/invalid_avatar').to_return(request_fixture('feed.txt'))
-    end
 
-    let(:account) do
-      Fabricate(:account,
-                avatar_remote_url: 'https://remote.test/valid_avatar',
-                header_remote_url: 'https://remote.test/valid_avatar')
+      account.update!(
+        avatar_remote_url: 'https://remote.test/valid_avatar',
+        header_remote_url: 'https://remote.test/valid_avatar'
+      )
     end
 
     let!(:expectation) { account.dup }
@@ -166,8 +166,8 @@ RSpec.describe Account do
     end
   end
 
-  describe '#possibly_stale?' do
-    let(:account) { Fabricate(:account, last_webfingered_at: last_webfingered_at) }
+  describe '#possibly_stale?', :account do
+    before { account.update!(last_webfingered_at: last_webfingered_at) }
 
     context 'when last_webfingered_at is nil' do
       let(:last_webfingered_at) { nil }
@@ -194,9 +194,10 @@ RSpec.describe Account do
     end
   end
 
-  describe '#refresh!' do
-    let(:account) { Fabricate(:account, domain: domain) }
+  describe '#refresh!', :account do
     let(:acct)    { account.acct }
+
+    before { account.update!(domain: domain) }
 
     context 'when domain is nil' do
       let(:domain) { nil }
@@ -231,35 +232,35 @@ RSpec.describe Account do
 
   describe '#to_param' do
     it 'returns username' do
-      account = Fabricate(:account, username: 'alice')
+      account = Fabricate.build(:account, username: 'alice')
       expect(account.to_param).to eq 'alice'
     end
   end
 
   describe '#keypair' do
     it 'returns an RSA key pair' do
-      account = Fabricate(:account)
+      account = Fabricate.build(:account)
       expect(account.keypair).to be_instance_of OpenSSL::PKey::RSA
     end
   end
 
   describe '#object_type' do
     it 'is always a person' do
-      account = Fabricate(:account)
+      account = Fabricate.build(:account)
       expect(account.object_type).to be :person
     end
   end
 
-  describe '#favourited?' do
-    subject { Fabricate(:account) }
+  describe '#favourited?', :account do
+    subject { account }
 
-    let(:original_status) do
+    let_it_be(:original_status) do
       author = Fabricate(:account, username: 'original')
       Fabricate(:status, account: author)
     end
 
     context 'when the status is a reblog of another status' do
-      let(:original_reblog) do
+      let_it_be(:original_reblog) do
         author = Fabricate(:account, username: 'original_reblogger')
         Fabricate(:status, reblog: original_status, account: author)
       end
@@ -288,16 +289,16 @@ RSpec.describe Account do
     end
   end
 
-  describe '#reblogged?' do
-    subject { Fabricate(:account) }
+  describe '#reblogged?', :account do
+    subject { account }
 
-    let(:original_status) do
+    let_it_be(:original_status) do
       author = Fabricate(:account, username: 'original')
       Fabricate(:status, account: author)
     end
 
     context 'when the status is a reblog of another status' do
-      let(:original_reblog) do
+      let_it_be(:original_reblog) do
         author = Fabricate(:account, username: 'original_reblogger')
         Fabricate(:status, reblog: original_status, account: author)
       end
@@ -352,7 +353,7 @@ RSpec.describe Account do
   end
 
   describe '.search_for' do
-    before do
+    before_all do
       _missing = Fabricate(
         :account,
         display_name: 'Missing',
@@ -472,9 +473,7 @@ RSpec.describe Account do
     end
   end
 
-  describe '.advanced_search_for' do
-    let(:account) { Fabricate(:account) }
-
+  describe '.advanced_search_for', :account do
     context 'when limiting search to followed accounts' do
       it 'accepts ?, \, : and space as delimiter' do
         match = Fabricate(
@@ -616,8 +615,8 @@ RSpec.describe Account do
     end
   end
 
-  describe '#statuses_count' do
-    subject { Fabricate(:account) }
+  describe '#statuses_count', :account do
+    subject { account }
 
     it 'counts statuses' do
       Fabricate(:status, account: subject)
@@ -836,8 +835,8 @@ RSpec.describe Account do
 
   describe 'scopes' do
     describe 'matches_uri_prefix' do
-      let!(:alice) { Fabricate :account, domain: 'host.example', uri: 'https://host.example/user/a' }
-      let!(:bob) { Fabricate :account, domain: 'top-level.example', uri: 'https://top-level.example' }
+      let_it_be(:alice) { Fabricate :account, domain: 'host.example', uri: 'https://host.example/user/a' }
+      let_it_be(:bob) { Fabricate :account, domain: 'top-level.example', uri: 'https://top-level.example' }
 
       it 'returns accounts which start with the value' do
         results = described_class.matches_uri_prefix('https://host.example')
@@ -861,10 +860,10 @@ RSpec.describe Account do
     end
 
     describe 'auditable' do
-      let!(:alice) { Fabricate :account }
-      let!(:bob) { Fabricate :account }
+      let_it_be(:alice) { Fabricate :account }
+      let_it_be(:bob) { Fabricate :account }
 
-      before do
+      before_all do
         2.times { Fabricate :action_log, account: alice }
       end
 
@@ -978,17 +977,17 @@ RSpec.describe Account do
     end
 
     describe 'searchable' do
-      let!(:suspended_local)        { Fabricate(:account, suspended: true, username: 'suspended_local') }
-      let!(:suspended_remote)       { Fabricate(:account, suspended: true, domain: 'example.org', username: 'suspended_remote') }
-      let!(:silenced_local)         { Fabricate(:account, silenced: true, username: 'silenced_local') }
-      let!(:silenced_remote)        { Fabricate(:account, silenced: true, domain: 'example.org', username: 'silenced_remote') }
-      let!(:unconfirmed)            { Fabricate(:user, confirmed_at: nil).account }
-      let!(:unapproved)             { Fabricate(:user, approved: false).account }
-      let!(:unconfirmed_unapproved) { Fabricate(:user, confirmed_at: nil, approved: false).account }
-      let!(:local_account)          { Fabricate(:account, username: 'local_account') }
-      let!(:remote_account)         { Fabricate(:account, domain: 'example.org', username: 'remote_account') }
+      let_it_be(:suspended_local)        { Fabricate(:account, suspended: true, username: 'suspended_local') }
+      let_it_be(:suspended_remote)       { Fabricate(:account, suspended: true, domain: 'example.org', username: 'suspended_remote') }
+      let_it_be(:silenced_local)         { Fabricate(:account, silenced: true, username: 'silenced_local') }
+      let_it_be(:silenced_remote)        { Fabricate(:account, silenced: true, domain: 'example.org', username: 'silenced_remote') }
+      let_it_be(:unconfirmed)            { Fabricate(:user, confirmed_at: nil).account }
+      let_it_be(:unapproved)             { Fabricate(:user, approved: false).account }
+      let_it_be(:unconfirmed_unapproved) { Fabricate(:user, confirmed_at: nil, approved: false).account }
+      let_it_be(:local_account)          { Fabricate(:account, username: 'local_account') }
+      let_it_be(:remote_account)         { Fabricate(:account, domain: 'example.org', username: 'remote_account') }
 
-      before do
+      before_all do
         # Accounts get automatically-approved depending on settings, so ensure they aren't approved
         unapproved.user.update(approved: false)
         unconfirmed_unapproved.user.update(approved: false)
@@ -1029,8 +1028,8 @@ RSpec.describe Account do
   include_examples 'AccountAvatar', :account
   include_examples 'AccountHeader', :account
 
-  describe '#increment_count!' do
-    subject { Fabricate(:account) }
+  describe '#increment_count!', :account do
+    subject { account }
 
     it 'increments the count in multi-threaded an environment when account_stat is not yet initialized' do
       subject
