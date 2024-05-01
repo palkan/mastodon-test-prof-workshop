@@ -21,11 +21,11 @@ RSpec.describe 'Accounts', :admin, :account do
       end
     end
 
-    let!(:remote_account)    { Fabricate(:account, domain: 'example.org') }
-    let!(:suspended_account) { Fabricate(:account, suspended: true) }
-    let!(:disabled_account)  { Fabricate(:user, disabled: true).account }
-    let!(:pending_account)   { Fabricate(:user, approved: false).account }
-    let!(:admin_account)     { user.account }
+    let_it_be(:remote_account)    { Fabricate(:account, domain: 'example.org') }
+    let_it_be(:suspended_account) { Fabricate(:account, suspended: true) }
+    let_it_be(:disabled_account)  { Fabricate(:user, disabled: true).account }
+    let_it_be(:pending_account)   { Fabricate(:user, approved: false).account }
+    let_it_be(:admin_account)     { user.account }
     let(:params)             { {} }
 
     it_behaves_like 'forbidden for wrong scope', 'read read:accounts admin:write admin:write:accounts'

@@ -3,28 +3,30 @@
 require 'rails_helper'
 
 RSpec.describe 'Notifications' do
-  let(:user)    { Fabricate(:user, account_attributes: { username: 'alice' }) }
+  let_it_be(:user)    { Fabricate(:user, account_attributes: { username: 'alice' }) }
   let(:token)   { Fabricate(:accessible_access_token, resource_owner_id: user.id, scopes: scopes) }
   let(:scopes)  { 'read:notifications write:notifications' }
   let(:headers) { { 'Authorization' => "Bearer #{token.token}" } }
 
-  describe 'GET /api/v1/notifications' do
+  describe 'GET /api/v1/notifications', clean_redis: false do
     subject do
       get '/api/v1/notifications', headers: headers, params: params
     end
 
-    let(:bob)    { Fabricate(:user) }
-    let(:tom)    { Fabricate(:user) }
+    let_it_be(:bob)    { Fabricate(:user) }
+    let_it_be(:tom)    { Fabricate(:user) }
     let(:params) { {} }
 
-    before do
-      first_status = PostStatusService.new.call(user.account, text: 'Test')
-      ReblogService.new.call(bob.account, first_status)
-      mentioning_status = PostStatusService.new.call(bob.account, text: 'Hello @alice')
-      mentioning_status.mentions.first
-      FavouriteService.new.call(bob.account, first_status)
-      FavouriteService.new.call(tom.account, first_status)
-      FollowService.new.call(bob.account, user.account)
+    before_all do
+      Sidekiq::Testing.inline! do
+        first_status = PostStatusService.new.call(user.account, text: 'Test')
+        ReblogService.new.call(bob.account, first_status)
+        mentioning_status = PostStatusService.new.call(bob.account, text: 'Hello @alice')
+        mentioning_status.mentions.first
+        FavouriteService.new.call(bob.account, first_status)
+        FavouriteService.new.call(tom.account, first_status)
+        FollowService.new.call(bob.account, user.account)
+      end
     end
 
     it_behaves_like 'forbidden for wrong scope', 'write write:notifications'

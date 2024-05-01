@@ -2,7 +2,8 @@
 
 require 'rails_helper'
 
-describe 'Home', :user do
+describe 'Home' do
+  let(:user) { Fabricate(:user) }
   let(:scopes)  { 'read:statuses' }
   let(:token)   { Fabricate(:accessible_access_token, resource_owner_id: user.id, scopes: scopes) }
   let(:headers) { { 'Authorization' => "Bearer #{token.token}" } }
@@ -16,18 +17,20 @@ describe 'Home', :user do
 
     it_behaves_like 'forbidden for wrong scope', 'write write:statuses'
 
-    context 'when the timeline is available' do
+    context 'when the timeline is available', :user, clean_redis: false do
       let(:home_statuses) { bob.statuses + ana.statuses }
-      let!(:bob)          { Fabricate(:account) }
-      let!(:tim)          { Fabricate(:account) }
-      let!(:ana)          { Fabricate(:account) }
+      let_it_be(:bob)          { Fabricate(:account) }
+      let_it_be(:tim)          { Fabricate(:account) }
+      let_it_be(:ana)          { Fabricate(:account) }
 
-      before do
-        user.account.follow!(bob)
-        user.account.follow!(ana)
-        PostStatusService.new.call(bob, text: 'New toot from bob.')
-        PostStatusService.new.call(tim, text: 'New toot from tim.')
-        PostStatusService.new.call(ana, text: 'New toot from ana.')
+      before_all do
+        Sidekiq::Testing.inline! do
+          user.account.follow!(bob)
+          user.account.follow!(ana)
+          PostStatusService.new.call(bob, text: 'New toot from bob.')
+          PostStatusService.new.call(tim, text: 'New toot from tim.')
+          PostStatusService.new.call(ana, text: 'New toot from ana.')
+        end
       end
 
       it 'returns http success' do

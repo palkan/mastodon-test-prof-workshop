@@ -166,13 +166,11 @@ describe 'Caching behavior' do
     ActionController::Base.allow_forgery_protection = old
   end
 
-  let(:alice) { Account.find_by(username: 'alice') }
-  let(:user) { User.find_by(email: 'user@host.example') }
+  let_it_be(:alice){ Fabricate(:account, username: 'alice') }
+  let_it_be(:user) { Fabricate(:user, email: 'user@host.example', role: UserRole.find_by(name: 'Moderator')) }
   let(:token) { Doorkeeper::AccessToken.find_by(resource_owner_id: user.id) }
 
-  before do
-    alice = Fabricate(:account, username: 'alice')
-    user = Fabricate(:user, email: 'user@host.example', role: UserRole.find_by(name: 'Moderator'))
+  before_all do
     status = Fabricate(:status, account: alice, id: 110_224_538_612_341_312)
     Fabricate(:status, account: alice, id: 110_224_538_643_211_312, visibility: :private)
     Fabricate(:invite, code: 'abcdef')
@@ -387,10 +385,10 @@ describe 'Caching behavior' do
   end
 
   context 'with a Signature header' do
-    let(:remote_actor)    { Fabricate(:account, domain: 'example.org', uri: 'https://example.org/remote', protocol: :activitypub) }
+    let_it_be(:remote_actor)    { Fabricate(:account, domain: 'example.org', uri: 'https://example.org/remote', protocol: :activitypub) }
     let(:dummy_signature) { 'dummy-signature' }
 
-    before do
+    before_all do
       remote_actor.follow!(alice)
     end
 
@@ -441,10 +439,10 @@ describe 'Caching behavior' do
     end
 
     context 'when providing a Signature' do
-      let(:remote_actor)    { Fabricate(:account, domain: 'example.org', uri: 'https://example.org/remote', protocol: :activitypub) }
+      let_it_be(:remote_actor)    { Fabricate(:account, domain: 'example.org', uri: 'https://example.org/remote', protocol: :activitypub) }
       let(:dummy_signature) { 'dummy-signature' }
 
-      before do
+      before_all do
         remote_actor.follow!(alice)
       end
 
@@ -501,10 +499,10 @@ describe 'Caching behavior' do
     end
 
     context 'when providing a Signature from an allowed domain' do
-      let(:remote_actor)    { Fabricate(:account, domain: 'example.org', uri: 'https://example.org/remote', protocol: :activitypub) }
+      let_it_be(:remote_actor)    { Fabricate(:account, domain: 'example.org', uri: 'https://example.org/remote', protocol: :activitypub) }
       let(:dummy_signature) { 'dummy-signature' }
 
-      before do
+      before_all do
         DomainAllow.create!(domain: remote_actor.domain)
         remote_actor.follow!(alice)
       end
@@ -529,7 +527,7 @@ describe 'Caching behavior' do
     end
 
     context 'when providing a Signature from a non-allowed domain' do
-      let(:remote_actor)    { Fabricate(:account, domain: 'example.org', uri: 'https://example.org/remote', protocol: :activitypub) }
+      let_it_be(:remote_actor)    { Fabricate(:account, domain: 'example.org', uri: 'https://example.org/remote', protocol: :activitypub) }
       let(:dummy_signature) { 'dummy-signature' }
 
       describe '/actor' do

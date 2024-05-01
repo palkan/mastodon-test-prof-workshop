@@ -2,9 +2,7 @@
 
 require 'rails_helper'
 
-RSpec.describe 'Canonical Email Blocks' do
-  let(:role)    { UserRole.find_by(name: 'Admin') }
-  let(:user)    { Fabricate(:user, role: role) }
+RSpec.describe 'Canonical Email Blocks', :admin do
   let(:token)   { Fabricate(:accessible_access_token, resource_owner_id: user.id, scopes: scopes) }
   let(:scopes)  { 'admin:read:canonical_email_blocks admin:write:canonical_email_blocks' }
   let(:headers) { { 'Authorization' => "Bearer #{token.token}" } }
@@ -35,7 +33,7 @@ RSpec.describe 'Canonical Email Blocks' do
     end
 
     context 'when there are canonical email blocks' do
-      let!(:canonical_email_blocks) { Fabricate.times(5, :canonical_email_block) }
+      let_it_be(:canonical_email_blocks) { Fabricate.times(5, :canonical_email_block) }
       let(:expected_email_hashes)   { canonical_email_blocks.pluck(:canonical_email_hash) }
 
       it 'returns the correct canonical email hashes' do
@@ -85,7 +83,7 @@ RSpec.describe 'Canonical Email Blocks' do
       get "/api/v1/admin/canonical_email_blocks/#{canonical_email_block.id}", headers: headers
     end
 
-    let!(:canonical_email_block) { Fabricate(:canonical_email_block) }
+    let_it_be(:canonical_email_block) { Fabricate(:canonical_email_block) }
 
     it_behaves_like 'forbidden for wrong scope', 'read:statuses'
     it_behaves_like 'forbidden for wrong role', ''
@@ -225,7 +223,7 @@ RSpec.describe 'Canonical Email Blocks' do
       delete "/api/v1/admin/canonical_email_blocks/#{canonical_email_block.id}", headers: headers
     end
 
-    let!(:canonical_email_block) { Fabricate(:canonical_email_block) }
+    let_it_be(:canonical_email_block) { Fabricate(:canonical_email_block) }
 
     it_behaves_like 'forbidden for wrong scope', 'read:statuses'
 

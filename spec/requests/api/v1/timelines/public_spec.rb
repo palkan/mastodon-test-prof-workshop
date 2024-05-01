@@ -21,10 +21,10 @@ describe 'Public', :user do
       get '/api/v1/timelines/public', headers: headers, params: params
     end
 
-    let!(:local_status)   { Fabricate(:status, account: Fabricate.build(:account, domain: nil)) }
-    let!(:remote_status)  { Fabricate(:status, account: Fabricate.build(:account, domain: 'example.com')) }
-    let!(:media_status)   { Fabricate(:status, media_attachments: [Fabricate.build(:media_attachment)]) }
-    let!(:status) { Fabricate(:status, visibility: :private) }
+    let_it_be(:local_status)   { Fabricate(:status, account: Fabricate.build(:account, domain: nil)) }
+    let_it_be(:remote_status)  { Fabricate(:status, account: Fabricate.build(:account, domain: 'example.com')) }
+    let_it_be(:media_status)   { Fabricate(:status, media_attachments: [Fabricate.build(:media_attachment)]) }
+    let_it_be(:status) { Fabricate(:status, visibility: :private) }
     let(:params) { {} }
 
     context 'when the instance allows public preview' do

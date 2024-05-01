@@ -12,7 +12,7 @@ RSpec.describe 'Media', :user do
       get "/api/v1/media/#{media.id}", headers: headers
     end
 
-    let(:media) { Fabricate(:media_attachment, account: user.account) }
+    let_it_be(:media) { Fabricate(:media_attachment, account: user.account) }
 
     it_behaves_like 'forbidden for wrong scope', 'read'
 

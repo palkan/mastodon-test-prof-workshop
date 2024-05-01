@@ -32,8 +32,8 @@ RSpec.describe 'Reports', :admin do
     end
 
     context 'when there are reports' do
-      let!(:reporter) { Fabricate(:account) }
-      let!(:spammer)  { Fabricate(:account) }
+      let_it_be(:reporter) { Fabricate(:account) }
+      let_it_be(:spammer)  { Fabricate(:account) }
       let(:expected_response) do
         scope.map do |report|
           hash_including({
@@ -51,7 +51,7 @@ RSpec.describe 'Reports', :admin do
       end
       let(:scope) { Report.unresolved }
 
-      before do
+      before_all do
         Fabricate(:report)
         Fabricate(:report, target_account: spammer)
         Fabricate(:report, account: reporter, target_account: spammer)
@@ -115,7 +115,7 @@ RSpec.describe 'Reports', :admin do
       get "/api/v1/admin/reports/#{report.id}", headers: headers
     end
 
-    let(:report) { Fabricate(:report) }
+    let_it_be(:report) { Fabricate(:report) }
 
     it_behaves_like 'forbidden for wrong scope', 'write:statuses'
     it_behaves_like 'forbidden for wrong role', ''
@@ -145,7 +145,7 @@ RSpec.describe 'Reports', :admin do
       put "/api/v1/admin/reports/#{report.id}", headers: headers, params: params
     end
 
-    let!(:report) { Fabricate(:report, category: :other) }
+    let_it_be(:report) { Fabricate(:report, category: :other) }
     let(:params)  { { category: 'spam' } }
 
     it 'updates the report category', :aggregate_failures do
@@ -178,7 +178,7 @@ RSpec.describe 'Reports', :admin do
       post "/api/v1/admin/reports/#{report.id}/resolve", headers: headers
     end
 
-    let(:report) { Fabricate(:report, action_taken_at: nil) }
+    let_it_be(:report) { Fabricate(:report, action_taken_at: nil) }
 
     it_behaves_like 'forbidden for wrong scope', 'write:statuses'
     it_behaves_like 'forbidden for wrong role', ''
@@ -196,7 +196,7 @@ RSpec.describe 'Reports', :admin do
       post "/api/v1/admin/reports/#{report.id}/reopen", headers: headers
     end
 
-    let(:report) { Fabricate(:report, action_taken_at: 10.days.ago) }
+    let_it_be(:report) { Fabricate(:report, action_taken_at: 10.days.ago) }
 
     it_behaves_like 'forbidden for wrong scope', 'write:statuses'
     it_behaves_like 'forbidden for wrong role', ''
@@ -214,7 +214,7 @@ RSpec.describe 'Reports', :admin do
       post "/api/v1/admin/reports/#{report.id}/assign_to_self", headers: headers
     end
 
-    let(:report) { Fabricate(:report) }
+    let_it_be(:report) { Fabricate(:report) }
 
     it_behaves_like 'forbidden for wrong scope', 'write:statuses'
     it_behaves_like 'forbidden for wrong role', ''
@@ -232,7 +232,7 @@ RSpec.describe 'Reports', :admin do
       post "/api/v1/admin/reports/#{report.id}/unassign", headers: headers
     end
 
-    let(:report) { Fabricate(:report, assigned_account_id: user.account.id) }
+    let_it_be(:report) { Fabricate(:report, assigned_account_id: user.account.id) }
 
     it_behaves_like 'forbidden for wrong scope', 'write:statuses'
     it_behaves_like 'forbidden for wrong role', ''

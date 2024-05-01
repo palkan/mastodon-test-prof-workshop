@@ -85,6 +85,13 @@ TestProf::LetItBe.configure do |config|
   config.default_modifiers[:refind] = true
 end
 
+TestProf::BeforeAll.configure do |config|
+  config.after(:rollback) do |scope|
+    redis = Thread.current[:redis]
+    redis&.del(redis.keys)
+  end
+end
+
 RSpec.configure do |config|
   # This is set before running spec:system, see lib/tasks/tests.rake
   config.filter_run_excluding type: lambda { |type|
@@ -163,9 +170,9 @@ RSpec.configure do |config|
     allow(Resolv::DNS).to receive(:open).and_raise('Real DNS queries are disabled, stub Resolv::DNS as needed') unless example.metadata[:type] == :system
   end
 
-  config.after do
+  config.after do |example|
     Rails.cache.clear
-    redis.del(redis.keys)
+    redis.del(redis.keys) unless example.metadata[:clean_redis] == false
   end
 
   # Assign types based on dir name for non-inferred types
