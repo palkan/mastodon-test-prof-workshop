@@ -3,10 +3,14 @@
 require 'rails_helper'
 
 RSpec.describe ActivityPub::RepliesController do
-  let(:status) { Fabricate(:status, visibility: parent_visibility) }
-  let(:remote_account)  { Fabricate(:account, domain: 'foobar.com') }
+  let_it_be(:status) { Fabricate(:status) }
+  let_it_be(:remote_account)  { Fabricate(:account, domain: 'foobar.com') }
+
+  let(:parent_visibility) { :public }
   let(:remote_reply_id) { 'https://foobar.com/statuses/1234' }
   let(:remote_querier) { nil }
+
+  before { status.update!(visibility: parent_visibility) }
 
   shared_examples 'common behavior' do
     context 'when status is private' do
@@ -149,15 +153,17 @@ RSpec.describe ActivityPub::RepliesController do
     it_behaves_like 'common behavior'
   end
 
-  before do
-    stub_const 'ActivityPub::RepliesController::DESCENDANTS_LIMIT', 5
-    allow(controller).to receive(:signed_request_actor).and_return(remote_querier)
-
+  before_all do
     Fabricate(:status, thread: status, visibility: :public)
     Fabricate(:status, thread: status, visibility: :public)
     Fabricate(:status, thread: status, visibility: :private)
     Fabricate(:status, account: status.account, thread: status, visibility: :public)
     Fabricate(:status, account: status.account, thread: status, visibility: :private)
+  end
+
+  before do
+    stub_const 'ActivityPub::RepliesController::DESCENDANTS_LIMIT', 5
+    allow(controller).to receive(:signed_request_actor).and_return(remote_querier)
 
     Fabricate(:status, account: remote_account, thread: status, visibility: :public, uri: remote_reply_id)
   end
@@ -172,7 +178,7 @@ RSpec.describe ActivityPub::RepliesController do
     end
 
     context 'with signature' do
-      let(:remote_querier) { Fabricate(:account, domain: 'example.com') }
+      let_it_be(:remote_querier) { Fabricate(:account, domain: 'example.com') }
 
       it_behaves_like 'allowed access'
 

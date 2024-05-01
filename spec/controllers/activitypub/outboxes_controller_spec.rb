@@ -2,16 +2,16 @@
 
 require 'rails_helper'
 
-RSpec.describe ActivityPub::OutboxesController do
-  let!(:account) { Fabricate(:account) }
-
-  before do
+RSpec.describe ActivityPub::OutboxesController, :account do
+  before_all do
     Fabricate(:status, account: account, visibility: :public)
     Fabricate(:status, account: account, visibility: :unlisted)
     Fabricate(:status, account: account, visibility: :private)
     Fabricate(:status, account: account, visibility: :direct)
     Fabricate(:status, account: account, visibility: :limited)
+  end
 
+  before do
     allow(controller).to receive(:signed_request_actor).and_return(remote_account)
   end
 

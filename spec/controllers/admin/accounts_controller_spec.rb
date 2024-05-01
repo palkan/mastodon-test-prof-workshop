@@ -2,13 +2,18 @@
 
 require 'rails_helper'
 
-RSpec.describe Admin::AccountsController do
+RSpec.describe Admin::AccountsController, :user, :account do
   render_views
+
+  let_it_be(:current_user) { Fabricate(:user) }
+
+  let(:role) { UserRole.find_by(name: 'Admin') }
+
+  before { current_user.update!(role:) }
 
   before { sign_in current_user, scope: :user }
 
   describe 'GET #index' do
-    let(:current_user) { Fabricate(:user, role: UserRole.find_by(name: 'Admin')) }
     let(:params) do
       {
         origin: 'local',
@@ -29,8 +34,6 @@ RSpec.describe Admin::AccountsController do
     end
 
     before do
-      Fabricate(:account)
-
       account_filter = instance_double(AccountFilter, results: Account.all)
       allow(AccountFilter).to receive(:new).and_return(account_filter)
     end
@@ -52,9 +55,6 @@ RSpec.describe Admin::AccountsController do
   end
 
   describe 'GET #show' do
-    let(:current_user) { Fabricate(:user, role: UserRole.find_by(name: 'Admin')) }
-    let(:account) { Fabricate(:account) }
-
     it 'returns http success' do
       get :show, params: { id: account.id }
       expect(response).to have_http_status(200)
@@ -64,12 +64,14 @@ RSpec.describe Admin::AccountsController do
   describe 'POST #memorialize' do
     subject { post :memorialize, params: { id: account.id } }
 
-    let(:current_user) { Fabricate(:user, role: current_role) }
     let(:account) { user.account }
-    let(:user) { Fabricate(:user, role: target_role) }
+
+    before do
+      user.update!(role: target_role)
+    end
 
     context 'when user is admin' do
-      let(:current_role) { UserRole.find_by(name: 'Admin') }
+      let(:role) { UserRole.find_by(name: 'Admin') }
 
       context 'when target user is admin' do
         let(:target_role) { UserRole.find_by(name: 'Admin') }
@@ -91,7 +93,7 @@ RSpec.describe Admin::AccountsController do
     end
 
     context 'when user is not admin' do
-      let(:current_role) { UserRole.find_by(name: 'Moderator') }
+      let(:role) { UserRole.find_by(name: 'Moderator') }
 
       context 'when target user is admin' do
         let(:target_role) { UserRole.find_by(name: 'Admin') }
@@ -116,9 +118,8 @@ RSpec.describe Admin::AccountsController do
   describe 'POST #enable' do
     subject { post :enable, params: { id: account.id } }
 
-    let(:current_user) { Fabricate(:user, role: role) }
     let(:account) { user.account }
-    let(:user) { Fabricate(:user, disabled: true) }
+    let_it_be(:user) { Fabricate(:user, disabled: true) }
 
     context 'when user is admin' do
       let(:role) { UserRole.find_by(name: 'Admin') }
@@ -142,9 +143,7 @@ RSpec.describe Admin::AccountsController do
   describe 'POST #approve' do
     subject { post :approve, params: { id: account.id } }
 
-    let(:current_user) { Fabricate(:user, role: role) }
     let(:account) { user.account }
-    let(:user) { Fabricate(:user) }
 
     before do
       account.user.update(approved: false)
@@ -180,9 +179,7 @@ RSpec.describe Admin::AccountsController do
   describe 'POST #reject' do
     subject { post :reject, params: { id: account.id } }
 
-    let(:current_user) { Fabricate(:user, role: role) }
     let(:account) { user.account }
-    let(:user) { Fabricate(:user) }
 
     before do
       account.user.update(approved: false)
@@ -217,10 +214,8 @@ RSpec.describe Admin::AccountsController do
   describe 'POST #redownload' do
     subject { post :redownload, params: { id: account.id } }
 
-    let(:current_user) { Fabricate(:user, role: role) }
-    let(:account) { Fabricate(:account, domain: 'example.com') }
-
     before do
+      account.update!(domain: 'example.com')
       service = instance_double(ResolveAccountService, call: nil)
       allow(ResolveAccountService).to receive(:new).and_return(service)
     end
@@ -245,9 +240,6 @@ RSpec.describe Admin::AccountsController do
   describe 'POST #remove_avatar' do
     subject { post :remove_avatar, params: { id: account.id } }
 
-    let(:current_user) { Fabricate(:user, role: role) }
-    let(:account) { Fabricate(:account) }
-
     context 'when user is admin' do
       let(:role) { UserRole.find_by(name: 'Admin') }
 
@@ -268,10 +260,10 @@ RSpec.describe Admin::AccountsController do
   describe 'POST #unblock_email' do
     subject { post :unblock_email, params: { id: account.id } }
 
-    let(:current_user) { Fabricate(:user, role: role) }
-    let(:account) { Fabricate(:account, suspended: true) }
+    let_it_be(:account) { Fabricate(:account, suspended: true) }
 
     before do
+      current_user.update!(role:)
       _email_block = Fabricate(:canonical_email_block, reference_account: account)
     end
 
@@ -298,8 +290,7 @@ RSpec.describe Admin::AccountsController do
   describe 'POST #unsensitive' do
     subject { post :unsensitive, params: { id: account.id } }
 
-    let(:current_user) { Fabricate(:user, role: role) }
-    let(:account) { Fabricate(:account, sensitized_at: 1.year.ago) }
+    let_it_be(:account) { Fabricate(:account, sensitized_at: 1.year.ago) }
 
     context 'when user is admin' do
       let(:role) { UserRole.find_by(name: 'Admin') }
@@ -326,8 +317,7 @@ RSpec.describe Admin::AccountsController do
   describe 'POST #unsilence' do
     subject { post :unsilence, params: { id: account.id } }
 
-    let(:current_user) { Fabricate(:user, role: role) }
-    let(:account) { Fabricate(:account, silenced_at: 1.year.ago) }
+    let_it_be(:account) { Fabricate(:account, silenced_at: 1.year.ago) }
 
     context 'when user is admin' do
       let(:role) { UserRole.find_by(name: 'Admin') }
@@ -353,9 +343,6 @@ RSpec.describe Admin::AccountsController do
 
   describe 'POST #unsuspend' do
     subject { post :unsuspend, params: { id: account.id } }
-
-    let(:current_user) { Fabricate(:user, role: role) }
-    let(:account) { Fabricate(:account) }
 
     before do
       account.suspend!
@@ -385,9 +372,6 @@ RSpec.describe Admin::AccountsController do
 
   describe 'POST #destroy' do
     subject { post :destroy, params: { id: account.id } }
-
-    let(:current_user) { Fabricate(:user, role: role) }
-    let(:account) { Fabricate(:account) }
 
     before do
       account.suspend!

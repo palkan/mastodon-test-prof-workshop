@@ -2,16 +2,19 @@
 
 require 'rails_helper'
 
-RSpec.describe Admin::InstancesController do
+RSpec.describe Admin::InstancesController, :admin do
   render_views
 
-  let(:current_user) { Fabricate(:user, role: UserRole.find_by(name: 'Admin')) }
+  let(:current_user) { user }
 
-  let!(:account_popular_main) { Fabricate(:account, domain: 'popular') }
+  let_it_be(:account_popular_main) { Fabricate(:account, domain: 'popular') }
 
-  before do
+  before_all do
     _account_less_popular = Fabricate(:account, domain: 'less.popular')
     _account_popular_other = Fabricate(:account, domain: 'popular')
+  end
+
+  before do
     Instance.refresh
 
     sign_in current_user, scope: :user

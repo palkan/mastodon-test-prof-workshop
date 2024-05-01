@@ -2,15 +2,13 @@
 
 require 'rails_helper'
 
-describe Admin::ResetsController do
+describe Admin::ResetsController, :account, :admin do
   render_views
 
   subject { post :create, params: { account_id: account.id } }
 
-  let(:account) { Fabricate(:account) }
-
   before do
-    sign_in Fabricate(:user, role: UserRole.find_by(name: 'Admin')), scope: :user
+    sign_in user, scope: :user
   end
 
   describe 'POST #create' do

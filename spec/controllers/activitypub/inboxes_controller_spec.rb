@@ -50,7 +50,7 @@ RSpec.describe ActivityPub::InboxesController do
     end
 
     context 'with Collection-Synchronization header' do
-      let(:remote_account)             { Fabricate(:account, followers_url: 'https://example.com/followers', domain: 'example.com', uri: 'https://example.com/actor', protocol: :activitypub) }
+      let_it_be(:remote_account)             { Fabricate(:account, followers_url: 'https://example.com/followers', domain: 'example.com', uri: 'https://example.com/actor', protocol: :activitypub) }
       let(:synchronization_collection) { remote_account.followers_url }
       let(:synchronization_url)        { 'https://example.com/followers-for-domain' }
       let(:synchronization_hash)       { 'somehash' }

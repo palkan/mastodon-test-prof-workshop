@@ -5,13 +5,13 @@ require 'rails_helper'
 describe FollowingAccountsController do
   render_views
 
-  let(:alice) { Fabricate(:account, username: 'alice') }
-  let(:followee_bob) { Fabricate(:account, username: 'bob') }
-  let(:followee_chris) { Fabricate(:account, username: 'chris') }
+  let_it_be(:alice) { Fabricate(:account, username: 'alice') }
+  let_it_be(:followee_bob) { Fabricate(:account, username: 'bob') }
+  let_it_be(:followee_chris) { Fabricate(:account, username: 'chris') }
 
   describe 'GET #index' do
-    let!(:follow_of_bob) { alice.follow!(followee_bob) }
-    let!(:follow_of_chris) { alice.follow!(followee_chris) }
+    let_it_be(:follow_of_bob) { alice.follow!(followee_bob) }
+    let_it_be(:follow_of_chris) { alice.follow!(followee_chris) }
 
     context 'when format is html' do
       subject(:response) { get :index, params: { account_username: alice.username, format: :html } }

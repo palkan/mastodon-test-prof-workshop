@@ -2,9 +2,8 @@
 
 require 'rails_helper'
 
-RSpec.describe ActivityPub::CollectionsController do
-  let!(:account) { Fabricate(:account) }
-  let!(:private_pinned) { Fabricate(:status, account: account, text: 'secret private stuff', visibility: :private) }
+RSpec.describe ActivityPub::CollectionsController, :account do
+  let_it_be(:private_pinned) { Fabricate(:status, account: account, text: 'secret private stuff', visibility: :private) }
   let(:remote_account) { nil }
 
   before do

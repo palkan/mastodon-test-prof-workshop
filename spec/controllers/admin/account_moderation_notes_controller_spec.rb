@@ -2,11 +2,10 @@
 
 require 'rails_helper'
 
-RSpec.describe Admin::AccountModerationNotesController do
+RSpec.describe Admin::AccountModerationNotesController, :admin do
   render_views
 
-  let(:user) { Fabricate(:user, role: UserRole.find_by(name: 'Admin')) }
-  let(:target_account) { Fabricate(:account) }
+  let_it_be(:target_account) { Fabricate(:account) }
 
   before do
     sign_in user, scope: :user

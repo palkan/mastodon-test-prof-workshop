@@ -2,10 +2,9 @@
 
 require 'rails_helper'
 
-describe Settings::AliasesController do
+describe Settings::AliasesController, :user do
   render_views
 
-  let!(:user) { Fabricate(:user) }
   let(:account) { user.account }
 
   before do

@@ -5,7 +5,7 @@ require 'rails_helper'
 describe Settings::Migration::RedirectsController do
   render_views
 
-  let!(:user) { Fabricate(:user, password: 'testtest') }
+  let_it_be(:user) { Fabricate(:user, password: 'testtest') }
 
   before do
     sign_in user, scope: :user

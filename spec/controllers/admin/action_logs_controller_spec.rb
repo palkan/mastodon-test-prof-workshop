@@ -2,11 +2,8 @@
 
 require 'rails_helper'
 
-describe Admin::ActionLogsController do
+describe Admin::ActionLogsController, :account do
   render_views
-
-  # Action logs typically cause issues when their targets are not in the database
-  let!(:account) { Fabricate(:account) }
 
   before do
     orphaned_log_types.map do |type|

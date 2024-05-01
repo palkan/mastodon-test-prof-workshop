@@ -2,21 +2,20 @@
 
 require 'rails_helper'
 
-describe Admin::StatusesController do
+describe Admin::StatusesController, :admin, :account do
   render_views
 
-  let(:user) { Fabricate(:user, role: UserRole.find_by(name: 'Admin')) }
-  let(:account) { Fabricate(:account) }
-  let!(:status) { Fabricate(:status, account: account) }
-  let(:media_attached_status) { Fabricate(:status, account: account, sensitive: !sensitive) }
-  let(:last_media_attached_status) { Fabricate(:status, account: account, sensitive: !sensitive) }
-  let(:sensitive) { true }
+  let_it_be(:status) { Fabricate(:status, account: account) }
+  let_it_be(:media_attached_status) { Fabricate(:status, account: account, sensitive: false) }
+  let_it_be(:last_media_attached_status) { Fabricate(:status, account: account, sensitive: false) }
 
-  before do
+  before_all do
     _last_media_attachment = Fabricate(:media_attachment, account: account, status: last_media_attached_status)
     _last_status = Fabricate(:status, account: account)
     _media_attachment = Fabricate(:media_attachment, account: account, status: media_attached_status)
+  end
 
+  before do
     sign_in user, scope: :user
   end
 
