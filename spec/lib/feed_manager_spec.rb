@@ -23,10 +23,10 @@ RSpec.describe FeedManager do
   end
 
   describe '#filter?' do
-    let(:alice) { Fabricate(:account, username: 'alice') }
-    let(:bob)   { Fabricate(:account, username: 'bob', domain: 'example.com') }
-    let(:jeff)  { Fabricate(:account, username: 'jeff') }
-    let(:list) { Fabricate(:list, account: alice) }
+    let_it_be(:alice) { Fabricate(:account, username: 'alice') }
+    let_it_be(:bob)   { Fabricate(:account, username: 'bob', domain: 'example.com') }
+    let_it_be(:jeff)  { Fabricate(:account, username: 'jeff') }
+    let_it_be(:list) { Fabricate(:list, account: alice) }
 
     context 'with home feed' do
       it 'returns false for followee\'s status' do
@@ -341,13 +341,13 @@ RSpec.describe FeedManager do
   end
 
   describe '#push_to_list' do
-    let(:owner) { Fabricate(:account, username: 'owner') }
-    let(:alice) { Fabricate(:account, username: 'alice') }
-    let(:bob)   { Fabricate(:account, username: 'bob') }
-    let(:eve)   { Fabricate(:account, username: 'eve') }
-    let(:list)  { Fabricate(:list, account: owner) }
+    let_it_be(:owner) { Fabricate(:account, username: 'owner') }
+    let_it_be(:alice) { Fabricate(:account, username: 'alice') }
+    let_it_be(:bob)   { Fabricate(:account, username: 'bob') }
+    let_it_be(:eve)   { Fabricate(:account, username: 'eve') }
+    let_it_be(:list)  { Fabricate(:list, account: owner) }
 
-    before do
+    before_all do
       owner.follow!(alice)
       owner.follow!(bob)
       owner.follow!(eve)
@@ -460,7 +460,7 @@ RSpec.describe FeedManager do
   end
 
   describe '#unpush_from_home' do
-    let(:receiver) { Fabricate(:account) }
+    let_it_be(:receiver) { Fabricate(:account) }
 
     it 'leaves a reblogged status if original was on feed' do
       reblogged = Fabricate(:status)
@@ -526,8 +526,8 @@ RSpec.describe FeedManager do
   end
 
   describe '#unmerge_tag_from_home' do
-    let(:receiver) { Fabricate(:account) }
-    let(:tag) { Fabricate(:tag) }
+    let_it_be(:receiver) { Fabricate(:account) }
+    let_it_be(:tag) { Fabricate(:tag) }
 
     it 'leaves a tagged status' do
       status = Fabricate(:status)
@@ -564,16 +564,16 @@ RSpec.describe FeedManager do
   end
 
   describe '#clear_from_home' do
-    let(:account) { Fabricate(:account) }
-    let(:followed_account) { Fabricate(:account) }
-    let(:target_account) { Fabricate(:account) }
-    let(:status_from_followed_account_first) { Fabricate(:status, account: followed_account) }
-    let(:status_from_target_account) { Fabricate(:status, account: target_account) }
-    let(:status_from_followed_account_mentions_target_account) { Fabricate(:status, account: followed_account, mentions: [Fabricate(:mention, account: target_account)]) }
-    let(:status_mentions_target_account) { Fabricate(:status, mentions: [Fabricate(:mention, account: target_account)]) }
-    let(:status_from_followed_account_reblogs_status_mentions_target_account) { Fabricate(:status, account: followed_account, reblog: status_mentions_target_account) }
-    let(:status_from_followed_account_reblogs_status_from_target_account) { Fabricate(:status, account: followed_account, reblog: status_from_target_account) }
-    let(:status_from_followed_account_next) { Fabricate(:status, account: followed_account) }
+    let_it_be(:account) { Fabricate(:account) }
+    let_it_be(:followed_account) { Fabricate(:account) }
+    let_it_be(:target_account) { Fabricate(:account) }
+    let_it_be(:status_from_followed_account_first) { Fabricate(:status, account: followed_account) }
+    let_it_be(:status_from_target_account) { Fabricate(:status, account: target_account) }
+    let_it_be(:status_from_followed_account_mentions_target_account) { Fabricate(:status, account: followed_account, mentions: [Fabricate(:mention, account: target_account)]) }
+    let_it_be(:status_mentions_target_account) { Fabricate(:status, mentions: [Fabricate(:mention, account: target_account)]) }
+    let_it_be(:status_from_followed_account_reblogs_status_mentions_target_account) { Fabricate(:status, account: followed_account, reblog: status_mentions_target_account) }
+    let_it_be(:status_from_followed_account_reblogs_status_from_target_account) { Fabricate(:status, account: followed_account, reblog: status_from_target_account) }
+    let_it_be(:status_from_followed_account_next) { Fabricate(:status, account: followed_account) }
 
     before do
       [

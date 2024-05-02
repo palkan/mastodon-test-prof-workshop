@@ -3,7 +3,7 @@
 require 'rails_helper'
 
 RSpec.describe ActivityPub::Activity::Create do
-  let(:sender) { Fabricate(:account, followers_url: 'http://example.com/followers', domain: 'example.com', uri: 'https://example.com/actor') }
+  let_it_be(:sender) { Fabricate(:account, followers_url: 'http://example.com/followers', domain: 'example.com', uri: 'https://example.com/actor') }
 
   let(:json) do
     {
@@ -24,7 +24,7 @@ RSpec.describe ActivityPub::Activity::Create do
   end
 
   describe 'processing posts received out of order' do
-    let(:follower) { Fabricate(:account, username: 'bob') }
+    let_it_be(:follower) { Fabricate(:account, username: 'bob') }
 
     let(:object_json) do
       {
@@ -431,7 +431,7 @@ RSpec.describe ActivityPub::Activity::Create do
       end
 
       context 'when direct' do
-        let(:recipient) { Fabricate(:account) }
+        let_it_be(:recipient) { Fabricate(:account) }
 
         let(:object_json) do
           {
@@ -455,7 +455,7 @@ RSpec.describe ActivityPub::Activity::Create do
       end
 
       context 'with a reply' do
-        let(:original_status) { Fabricate(:status) }
+        let_it_be(:original_status) { Fabricate(:status) }
 
         let(:object_json) do
           {
@@ -478,7 +478,7 @@ RSpec.describe ActivityPub::Activity::Create do
       end
 
       context 'with mentions' do
-        let(:recipient) { Fabricate(:account) }
+        let_it_be(:recipient) { Fabricate(:account) }
 
         let(:object_json) do
           {
@@ -873,12 +873,12 @@ RSpec.describe ActivityPub::Activity::Create do
       end
 
       context 'when a vote to an expired local poll' do
-        let(:poll) do
+        let_it_be(:poll) do
           poll = Fabricate.build(:poll, options: %w(Yellow Blue), expires_at: 1.day.ago)
           poll.save(validate: false)
           poll
         end
-        let!(:local_status) { Fabricate(:status, poll: poll) }
+        let_it_be(:local_status) { Fabricate(:status, poll: poll) }
 
         let(:object_json) do
           {
@@ -1023,7 +1023,7 @@ RSpec.describe ActivityPub::Activity::Create do
     context 'when sender replies to local status' do
       subject { described_class.new(json, sender, delivery: true) }
 
-      let!(:local_status) { Fabricate(:status) }
+      let_it_be(:local_status) { Fabricate(:status) }
       let(:object_json) do
         {
           id: [ActivityPub::TagManager.instance.uri_for(sender), '#bar'].join,
@@ -1048,7 +1048,7 @@ RSpec.describe ActivityPub::Activity::Create do
     context 'when sender targets a local user' do
       subject { described_class.new(json, sender, delivery: true) }
 
-      let!(:local_account) { Fabricate(:account) }
+      let_it_be(:local_account) { Fabricate(:account) }
       let(:object_json) do
         {
           id: [ActivityPub::TagManager.instance.uri_for(sender), '#bar'].join,

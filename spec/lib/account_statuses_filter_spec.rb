@@ -2,8 +2,7 @@
 
 require 'rails_helper'
 
-RSpec.describe AccountStatusesFilter do
-  let(:account) { Fabricate(:account) }
+RSpec.describe AccountStatusesFilter, :account do
   let(:current_account) { nil }
   let(:params) { {} }
 
@@ -38,9 +37,9 @@ RSpec.describe AccountStatusesFilter do
   describe '#results' do
     subject { described_class.new(account, current_account, params).results }
 
-    let(:tag) { Fabricate(:tag) }
+    let_it_be(:tag) { Fabricate(:tag) }
 
-    before do
+    before_all do
       status!(:public)
       status!(:unlisted)
       status!(:private)

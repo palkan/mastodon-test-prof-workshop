@@ -5,15 +5,17 @@ require 'rails_helper'
 describe MoveWorker do
   subject { described_class.new }
 
-  let(:local_follower)   { Fabricate(:account, domain: nil) }
-  let(:blocking_account) { Fabricate(:account) }
-  let(:muting_account)   { Fabricate(:account) }
-  let(:source_account)   { Fabricate(:account, protocol: :activitypub, domain: 'example.com', uri: 'https://example.org/a', inbox_url: 'https://example.org/a/inbox') }
-  let(:target_account)   { Fabricate(:account, protocol: :activitypub, domain: 'example.com', uri: 'https://example.org/b', inbox_url: 'https://example.org/b/inbox') }
-  let(:local_user)       { Fabricate(:user) }
+  let_it_be(:local_follower)   { Fabricate(:account, domain: nil) }
+  let_it_be(:blocking_account) { Fabricate(:account) }
+  let_it_be(:muting_account)   { Fabricate(:account) }
+  let_it_be(:source_account)   { Fabricate(:account, protocol: :activitypub, domain: 'example.com', uri: 'https://example.org/a', inbox_url: 'https://example.org/a/inbox') }
+  let_it_be(:target_account)   { Fabricate(:account, protocol: :activitypub, domain: 'example.com', uri: 'https://example.org/b', inbox_url: 'https://example.org/b/inbox') }
+  let_it_be(:local_user)       { Fabricate(:user) }
+  let_it_be(:list)             { Fabricate(:list, account: local_follower) }
+
+  let!(:account_note)    { Fabricate(:account_note, account: local_user.account, target_account: source_account, comment: 'old note prior to move') }
+
   let(:comment)          { 'old note prior to move' }
-  let!(:account_note)    { Fabricate(:account_note, account: local_user.account, target_account: source_account, comment: comment) }
-  let(:list)             { Fabricate(:list, account: local_follower) }
 
   let(:block_service) { instance_double(BlockService) }
 
