@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1
 
 # For details, see https://github.com/devcontainers/images/tree/main/src/ruby
-ARG RUBY_VERSION
+ARG RUBY_VERSION=3.2
 ARG DISTRO_NAME=bullseye
 FROM mcr.microsoft.com/devcontainers/ruby:1-$RUBY_VERSION-$DISTRO_NAME
 
@@ -30,6 +30,10 @@ RUN su vscode -c "source /usr/local/share/nvm/nvm.sh && corepack enable" 2>&1
 RUN corepack prepare yarn@4.1.1 --activate
 
 WORKDIR /app
+
+# Comment these lines if you want to install dependencies within a volume, not an image
+COPY Gemfile Gemfile.lock /app/
+RUN bundle install --frozen
 
 # Use Bash as the default command
 CMD ["/bin/bash"]
