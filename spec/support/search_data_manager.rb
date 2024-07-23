@@ -45,7 +45,6 @@ end
 RSpec.configure do |config|
   config.before :suite do
     if search_examples_present?
-      # Configure chewy to use `urgent` strategy to index documents
       Chewy.strategy(:urgent)
 
       # Create search data
@@ -58,6 +57,10 @@ RSpec.configure do |config|
       # Clean up after search data
       search_data_manager.cleanup_test_data
     end
+  end
+
+  config.before(:each) do
+    Chewy.strategy(:urgent)
   end
 
   config.around :each, :search do |example|

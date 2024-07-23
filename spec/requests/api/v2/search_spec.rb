@@ -3,6 +3,9 @@
 require 'rails_helper'
 
 describe 'Search API' do
+  # We test ES search separately
+  before { allow(Chewy).to receive(:enabled?) { false } }
+
   context 'with token' do
     let(:user)    { Fabricate(:user) }
     let(:token)   { Fabricate(:accessible_access_token, resource_owner_id: user.id, scopes: scopes) }
@@ -10,6 +13,9 @@ describe 'Search API' do
     let(:headers) { { 'Authorization' => "Bearer #{token.token}" } }
 
     describe 'GET /api/v2/search' do
+      # Make sure no accounts are in the database (may be created via fixtures)
+      before { Account.delete_all }
+
       let!(:bob)   { Fabricate(:account, username: 'bob_test') }
       let!(:ana)   { Fabricate(:account, username: 'ana_test') }
       let!(:tom)   { Fabricate(:account, username: 'tom_test') }

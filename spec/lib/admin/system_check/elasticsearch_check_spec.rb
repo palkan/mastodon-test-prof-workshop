@@ -3,6 +3,8 @@
 require 'rails_helper'
 
 describe Admin::SystemCheck::ElasticsearchCheck do
+  before { Chewy.strategy(:bypass) }
+
   subject(:check) { described_class.new(user) }
 
   let(:user) { Fabricate(:user) }

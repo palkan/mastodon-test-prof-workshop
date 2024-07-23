@@ -28,6 +28,8 @@ RSpec.describe PostStatusService do
   end
 
   context 'when scheduling a status' do
+    before { Chewy.strategy(:bypass) }
+
     let!(:account)         { Fabricate(:account) }
     let!(:future)          { Time.now.utc + 2.hours }
     let!(:previous_status) { Fabricate(:status, account: account) }

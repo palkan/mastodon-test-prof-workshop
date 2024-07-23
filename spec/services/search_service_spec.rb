@@ -3,6 +3,9 @@
 require 'rails_helper'
 
 describe SearchService do
+  # We test ES search separately
+  before { allow(Chewy).to receive(:enabled?) { false } }
+
   subject { described_class.new }
 
   describe '#call' do

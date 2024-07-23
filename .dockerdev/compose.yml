@@ -39,7 +39,9 @@ x-backend: &backend
     DB_USER: postgres
     DB_PASS: postgres
     DB_PORT: '5432'
-    ES_ENABLED: 'false'
+    ES_ENABLED: 'true'
+    ES_HOST: 'es'
+    ES_PORT: '9200'
     REDIS_URL: redis://redis:6379/
     DATABASE_URL: postgres://postgres:postgres@postgres:5432
     MALLOC_ARENA_MAX: 2
@@ -56,6 +58,8 @@ x-backend: &backend
       condition: service_healthy
     redis:
       condition: service_healthy
+    es:
+      condition: service_started
 
 services:
   rails:
@@ -105,6 +109,22 @@ services:
       timeout: 3s
       retries: 30
 
+  es:
+    image: docker.elastic.co/elasticsearch/elasticsearch-oss:7.10.2
+    environment:
+      ES_JAVA_OPTS: -Xms512m -Xmx512m
+      cluster.name: es-mastodon
+      discovery.type: single-node
+      bootstrap.memory_lock: 'true'
+    ports:
+      - 9200
+    volumes:
+      - es-data:/usr/share/elasticsearch/data
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+
 volumes:
   bundle:
   node_modules:
@@ -117,3 +137,4 @@ volumes:
   assets:
   packs:
   packs-test:
+  es-data:

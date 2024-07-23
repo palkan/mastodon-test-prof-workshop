@@ -7,7 +7,7 @@ module ThreadingHelpers
     threads = Array.new(thread_count) do
       Thread.new do
         true while wait_for_start
-        yield
+        Chewy.strategy(:urgent) { yield }
       end
     end
 

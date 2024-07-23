@@ -3,6 +3,8 @@
 require 'rails_helper'
 
 describe 'API Peers Search' do
+  before { allow(Chewy).to receive(:enabled?) { false } }
+
   describe 'GET /api/v1/peers/search' do
     context 'when peers api is disabled' do
       before do
