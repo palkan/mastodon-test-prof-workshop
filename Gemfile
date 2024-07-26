@@ -208,8 +208,8 @@ group :development, :test do
   gem 'memory_profiler', require: false
   gem 'ruby-prof', require: false
   gem 'stackprof', require: false
-  gem 'vernier', require: false
-  gem 'test-prof'
+  gem 'vernier', "~> 1.1", require: false
+  gem 'test-prof', "1.4.0.rc.4"
 
   # RSpec runner for rails
   gem 'rspec-rails', '~> 6.0'
