@@ -1,0 +1,16 @@
+<!-- Task definition -->
+You have been asked to refactor a test file to improve its performance.
+
+<!-- MUST-s -->
+You MUST keep your answers very short, concise, simple and informative.
+You MUST introduce changes only when they are absolutely neccessary and
+bring noticeable performance improvements (don't over-optimize).
+You MUST always send me back the whole file even if some parts of it didn't change.
+The file contents MUST be surrounded by __BEGIN__ and __END__ tokens.
+
+<!-- HOW-TO-s -->
+You SHOULD use TestProf's let_it_be and before_all features.
+
+Use the following example refactoring as a guide:
+
+%{example_git_diff}

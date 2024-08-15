@@ -1,0 +1,37 @@
+name: 'TestProf AI refactoring'
+description: 'Optimize tests using TestProf'
+inputs:
+  example-patch-path:
+    description: Path to the example Git patch to use by AI
+    default: ''
+  custom-prompt-path:
+    description: 'Path to a custom prompt template to use'
+    default: ''
+  issue-number:
+    description: 'GitHub issue number to read the task from'
+    required: true
+  github-token:
+    description: 'GitHub access token to perform API calls'
+    required: true
+  llm-api-key:
+    description: An API key to communicate with an LLM (Claude by default)
+    required: true
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Set up prompt
+      shell: bash
+      env:
+        PROMPT_PATH: ${{ github.action_path }}/prompt.txt
+      run: |
+        echo "Current prompt is: $(cat $PROMPT_PATH)"
+
+    - name: Execute AI script
+      shell: bash
+      env:
+        LLM_API_KEY: ${{ inputs.llm-api-key }}
+        GITHUB_ISSUE_NUMBER: ${{ inputs.issue-number }}
+        GITHUB_TOKEN: ${{ inputs.github-token }}
+      run: |
+        ruby ${{ github.action_path }}/main.rb
