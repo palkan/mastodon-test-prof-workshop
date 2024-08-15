@@ -1,0 +1,133 @@
+name: TestProf AI
+
+on:
+  workflow_dispatch:
+
+env:
+  BUNDLE_CLEAN: true
+  BUNDLE_FROZEN: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: true
+      matrix:
+        mode:
+          - test
+    env:
+      RAILS_ENV: ${{ matrix.mode }}
+      BUNDLE_WITH: ${{ matrix.mode }}
+      SECRET_KEY_BASE_DUMMY: 1
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Ruby environment
+        uses: ./.github/actions/setup-ruby
+
+      - name: Set up Javascript environment
+        uses: ./.github/actions/setup-javascript
+        with:
+          onlyProduction: 'true'
+
+      - name: Precompile assets
+        # Previously had set this, but it's not supported
+        # export NODE_OPTIONS=--openssl-legacy-provider
+        run: |-
+          ./bin/rails assets:precompile
+
+      - name: Archive asset artifacts
+        run: |
+          tar --exclude={"*.br","*.gz"} -zcf artifacts.tar.gz public/assets public/packs*
+
+      - uses: actions/upload-artifact@v4
+        if: matrix.mode == 'test'
+        with:
+          path: |-
+            ./artifacts.tar.gz
+          name: test-prof-ai-assets
+          retention-days: 10
+
+  test-prof:
+    runs-on: ubuntu-latest
+
+    needs:
+      - build
+
+    services:
+      postgres:
+        image: postgres:14-alpine
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_USER: postgres
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10ms
+          --health-timeout 3s
+          --health-retries 50
+        ports:
+          - 5432:5432
+
+      redis:
+        image: redis:7-alpine
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10ms
+          --health-timeout 3s
+          --health-retries 50
+        ports:
+          - 6379:6379
+
+    env:
+      DB_HOST: localhost
+      DB_USER: postgres
+      DB_PASS: postgres
+      DISABLE_SIMPLECOV: ${{ matrix.ruby-version != '.ruby-version' }}
+      RAILS_ENV: test
+      ALLOW_NOPAM: true
+      PAM_ENABLED: true
+      PAM_DEFAULT_SERVICE: pam_test
+      PAM_CONTROLLED_SERVICE: pam_test_controlled
+      OIDC_ENABLED: true
+      OIDC_SCOPE: read
+      SAML_ENABLED: true
+      CAS_ENABLED: true
+      BUNDLE_WITH: 'pam_authentication test'
+      GITHUB_RSPEC: ${{ matrix.ruby-version == '.ruby-version' && github.event.pull_request && 'true' }}
+
+    strategy:
+      fail-fast: false
+      matrix:
+        ruby-version:
+          - '3.3'
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          path: './'
+          name: test-prof-ai-assets
+
+      - name: Expand archived asset artifacts
+        run: |
+          tar xvzf artifacts.tar.gz
+
+      - name: Set up Ruby environment
+        uses: ./.github/actions/setup-ruby
+        with:
+          ruby-version: ${{ matrix.ruby-version}}
+          additional-system-dependencies: ffmpeg libpam-dev
+
+      - name: Load database schema
+        run: |
+          bin/rails db:setup
+          bin/flatware fan bin/rails db:test:prepare
+
+      - name: Run TestProf AI
+        uses: test-prof/test-prof-aiptimize-action@main
+        with:
+          api-key: ${{ secrets.CLAUDE_API_KEY }}
+          base-branch: test-prof-aiptimize
+          issue-number: ${{ github.event.issue.number }}
