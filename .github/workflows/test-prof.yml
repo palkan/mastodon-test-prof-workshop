@@ -1,7 +1,8 @@
 name: TestProf AI
 
 on:
-  workflow_dispatch:
+  issues:
+    types: [labeled]
 
 env:
   BUNDLE_CLEAN: true
@@ -9,6 +10,7 @@ env:
 
 jobs:
   build:
+    if: github.event.label.name == 'test-prof'
     runs-on: ubuntu-latest
 
     strategy:
