@@ -2,7 +2,7 @@
 
 require 'rails_helper'
 
-RSpec.describe 'Media API', :attachment_processing do
+RSpec.describe 'Media API' do
   include_context 'with API authentication', oauth_scopes: 'write'
 
   describe 'POST /api/v2/media' do

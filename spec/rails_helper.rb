@@ -123,15 +123,6 @@ RSpec.configure do |config|
     allow(Resolv::DNS).to receive(:open).and_raise('Real DNS queries are disabled, stub Resolv::DNS as needed') unless example.metadata[:type] == :system
   end
 
-  config.before do |example|
-    unless example.metadata[:attachment_processing]
-      # rubocop:disable RSpec/AnyInstance
-      allow_any_instance_of(Paperclip::Attachment).to receive(:post_process).and_return(true)
-      allow_any_instance_of(Paperclip::MediaTypeSpoofDetector).to receive(:spoofed?).and_return(false)
-      # rubocop:enable RSpec/AnyInstance
-    end
-  end
-
   config.before :each, type: :request do
     # Use https and configured hostname in request spec requests
     integration_session.https!

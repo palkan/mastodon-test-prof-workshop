@@ -22,7 +22,7 @@ RSpec.describe 'Public files' do
     end
   end
 
-  context 'when requesting paperclip attachments', :attachment_processing do
+  context 'when requesting paperclip attachments' do
     let(:attachment) { Fabricate(:media_attachment, type: :image) }
 
     it 'returns the file with the expected headers' do

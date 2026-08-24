@@ -3,7 +3,7 @@
 require 'rails_helper'
 
 RSpec.describe Account::Avatar do
-  describe 'static avatars', :attachment_processing do
+  describe 'static avatars' do
     describe 'with a square GIF' do
       it 'creates a png static style' do
         account = Fabricate(:account, avatar: attachment_fixture('avatar.gif'))
@@ -26,7 +26,7 @@ RSpec.describe Account::Avatar do
     end
   end
 
-  describe 'base64-encoded files', :attachment_processing do
+  describe 'base64-encoded files' do
     let(:base64_attachment) { "data:image/jpeg;base64,#{Base64.encode64(attachment_fixture('attachment.jpg').read)}" }
     let(:account) { Fabricate(:account, avatar: base64_attachment) }
 
