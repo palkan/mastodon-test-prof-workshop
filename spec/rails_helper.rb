@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-ENV['RAILS_ENV'] ||= 'test'
+ENV['RAILS_ENV'] = 'test'
 
 # This needs to be defined before Rails is initialized
 STREAMING_PORT = ENV.fetch('TEST_STREAMING_PORT', '4020')

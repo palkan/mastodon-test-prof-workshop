@@ -211,6 +211,7 @@ group :development, :test do
   gem 'ruby-prof', require: false
   gem 'stackprof', require: false
   gem 'test-prof', require: false
+  gem 'vernier', require: false
 
   # RSpec runner for rails
   gem 'rspec-rails', '~> 8.0'
