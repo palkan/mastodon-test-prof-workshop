@@ -12,6 +12,15 @@ RSpec.describe Mastodon::RedisConfiguration do
     allow(Rails.env).to receive(:test?).and_return(false)
   end
 
+  around do |example|
+    # The environment may provide its own Redis connection settings (e.g., the
+    # Docker development environment points REDIS_HOST at the redis container);
+    # unset them so the examples observe the built-in defaults.
+    ClimateControl.modify REDIS_URL: nil, REDIS_HOST: nil, REDIS_PORT: nil do
+      example.run
+    end
+  end
+
   shared_examples 'setting a different driver' do
     context 'when setting the `REDIS_DRIVER` variable to `ruby`' do
       around do |example|
