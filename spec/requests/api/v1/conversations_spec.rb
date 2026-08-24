@@ -9,7 +9,7 @@ RSpec.describe 'API V1 Conversations' do
 
   let(:other) { Fabricate(:user) }
 
-  describe 'GET /api/v1/conversations', :inline_jobs do
+  describe 'GET /api/v1/conversations' do
     before do
       user.account.follow!(other.account)
       PostStatusService.new.call(other.account, text: 'Hey @alice', visibility: 'direct')

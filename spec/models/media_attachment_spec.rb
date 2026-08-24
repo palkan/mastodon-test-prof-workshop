@@ -293,6 +293,8 @@ RSpec.describe MediaAttachment do
     end
 
     it 'queues CacheBusterWorker jobs' do
+      Sidekiq.testing!(:fake)
+
       original_url = media.file.url(:original)
       small_url = media.file.url(:small)
 

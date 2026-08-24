@@ -183,6 +183,8 @@ RSpec.describe 'API V1 Annual Reports' do
         end
 
         it 'returns http accepted, create an async job and schedules a job' do
+          Sidekiq.testing!(:fake)
+
           expect { post '/api/v1/annual_reports/2025/generate', headers: headers }
             .to enqueue_sidekiq_job(GenerateAnnualReportWorker).with(user.account_id, 2025)
 

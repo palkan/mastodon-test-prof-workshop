@@ -26,7 +26,7 @@ RSpec.describe FavouriteService do
       stub_request(:post, 'http://example.com/inbox').to_return(status: 200, body: '', headers: {})
     end
 
-    it 'creates a favourite and sends like activity', :inline_jobs do
+    it 'creates a favourite and sends like activity' do
       subject.call(sender, status)
 
       expect(status.favourites.first)

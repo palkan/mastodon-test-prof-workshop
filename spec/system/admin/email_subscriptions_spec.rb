@@ -15,7 +15,7 @@ RSpec.describe 'Admin Email Subscriptions' do
     context 'when feature enabled' do
       before { Setting.email_subscriptions = true }
 
-      it 'shows subscription related details and manages the setting', :inline_jobs do
+      it 'shows subscription related details and manages the setting' do
         visit admin_email_subscriptions_path
         expect(page)
           .to have_title(I18n.t('admin.email_subscriptions.index.title'))

@@ -30,6 +30,8 @@ RSpec.describe CreateCollectionService do
       end
 
       it 'federates an `Add` activity' do
+        Sidekiq.testing!(:fake)
+
         subject.call(base_params, author)
 
         expect(ActivityPub::CollectionRawDistributionWorker).to have_enqueued_sidekiq_job
@@ -64,6 +66,8 @@ RSpec.describe CreateCollectionService do
 
         context 'when some accounts are local' do
           it 'schedules notifications' do
+            Sidekiq.testing!(:fake)
+
             subject.call(params, author)
 
             expect(LocalNotificationWorker)
@@ -76,6 +80,8 @@ RSpec.describe CreateCollectionService do
           let(:accounts) { Fabricate.times(2, :remote_account, feature_approval_policy: (0b10 << 16)) }
 
           it 'marks the new items as `pending` and federates `FeatureRequest` activities' do
+            Sidekiq.testing!(:fake)
+
             subject.call(params, author)
 
             new_collection = author.collections.last

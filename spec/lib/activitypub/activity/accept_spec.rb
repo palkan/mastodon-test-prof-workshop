@@ -31,6 +31,8 @@ RSpec.describe ActivityPub::Activity::Accept do
         end
 
         it 'creates a follow relationship, removes the follow request, and queues a refresh' do
+          Sidekiq.testing!(:fake)
+
           expect { subject.perform }
             .to change { recipient.following?(sender) }.from(false).to(true)
             .and change { recipient.requested?(sender) }.from(true).to(false)
@@ -78,6 +80,8 @@ RSpec.describe ActivityPub::Activity::Accept do
       end
 
       it 'marks the quote as approved and distribute an update' do
+        Sidekiq.testing!(:fake)
+
         expect { subject.perform }
           .to change { quote.reload.accepted? }.from(false).to(true)
           .and change { quote.reload.approval_uri }.to(approval_uri)
@@ -147,6 +151,8 @@ RSpec.describe ActivityPub::Activity::Accept do
         end
 
         it 'marks the quote as approved and distribute an update' do
+          Sidekiq.testing!(:fake)
+
           expect { subject.perform }
             .to change { quote.reload.accepted? }.from(false).to(true)
             .and change { quote.reload.approval_uri }.to(approval_uri)
@@ -190,6 +196,8 @@ RSpec.describe ActivityPub::Activity::Accept do
 
       context 'when activity is valid' do
         it 'accepts the collection item, stores the authorization uri and federates an `Add` activity' do
+          Sidekiq.testing!(:fake)
+
           subject.perform
 
           expect(collection_item.reload).to be_accepted

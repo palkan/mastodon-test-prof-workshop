@@ -21,6 +21,8 @@ RSpec.describe 'Export page' do
 
   describe 'Creating a new archive' do
     it 'queues a worker and redirects' do
+      Sidekiq.testing!(:fake)
+
       visit settings_export_path
 
       expect { request_archive }

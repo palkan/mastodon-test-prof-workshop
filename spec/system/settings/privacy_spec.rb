@@ -12,6 +12,8 @@ RSpec.describe 'Settings Privacy' do
 
     context 'with a successful update' do
       it 'updates user profile information' do
+        Sidekiq.testing!(:fake)
+
         # View settings page
         visit settings_privacy_path
         expect(page)

@@ -11,6 +11,8 @@ RSpec.describe MoveService do
     let(:target_account) { Fabricate(:account, also_known_as: [source_account_uri]) }
 
     it 'migrates the account to a new account' do
+      Sidekiq.testing!(:fake)
+
       expect { subject }
         .to change_source_moved_value
         .and process_local_updates

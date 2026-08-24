@@ -51,6 +51,8 @@ RSpec.describe ActivityPub::Activity::QuoteRequest do
   describe '#perform' do
     subject { described_class.new(json, sender) }
 
+    before { Sidekiq.testing!(:fake) }
+
     context 'when trying to quote an unknown status' do
       let(:quoted_uri) { 'https://example.com/statuses/1234' }
 

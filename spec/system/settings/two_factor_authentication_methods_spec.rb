@@ -11,7 +11,7 @@ RSpec.describe 'Settings TwoFactorAuthenticationMethods' do
     describe 'Managing 2FA methods' do
       before { user.update(otp_required_for_login: true) }
 
-      it 'disables 2FA with challenge confirmation', :inline_jobs do
+      it 'disables 2FA with challenge confirmation' do
         visit settings_two_factor_authentication_methods_path
         expect(page)
           .to have_text(I18n.t('settings.two_factor_authentication'))

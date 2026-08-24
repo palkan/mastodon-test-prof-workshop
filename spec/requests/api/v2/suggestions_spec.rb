@@ -34,6 +34,8 @@ RSpec.describe 'Suggestions API' do
 
     context 'when `follow_recommendation` FASP is enabled', feature: :fasp do
       it 'enqueues a retrieval job and adds a header to inform the client' do
+        Sidekiq.testing!(:fake)
+
         get '/api/v2/suggestions', headers: headers
 
         expect(Fasp::FollowRecommendationWorker).to have_enqueued_sidekiq_job

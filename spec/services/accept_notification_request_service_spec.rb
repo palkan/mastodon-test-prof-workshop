@@ -9,6 +9,8 @@ RSpec.describe AcceptNotificationRequestService do
 
   describe '#call' do
     it 'destroys the notification request, creates a permission, increases the jobs count and queues a worker' do
+      Sidekiq.testing!(:fake)
+
       expect { subject.call(notification_request) }
         .to change { NotificationRequest.exists?(notification_request.id) }.to(false)
         .and change { NotificationPermission.exists?(account_id: notification_request.account_id, from_account_id: notification_request.from_account_id) }.to(true)

@@ -8,7 +8,7 @@ RSpec.describe 'Settings Deletes' do
 
     before { sign_in(user) }
 
-    it 'requires password and deletes user record', :inline_jobs do
+    it 'requires password and deletes user record' do
       visit settings_delete_path
       expect(page)
         .to have_title(I18n.t('settings.delete'))

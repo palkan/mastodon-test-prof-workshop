@@ -19,6 +19,8 @@ RSpec.describe 'Pins' do
 
     context 'when the status is public' do
       it 'pins the status successfully and returns updated json', :aggregate_failures do
+        Sidekiq.testing!(:fake)
+
         subject
 
         expect(response).to have_http_status(200)
@@ -110,6 +112,8 @@ RSpec.describe 'Pins' do
       end
 
       it 'unpins the status successfully and includes updated json', :aggregate_failures do
+        Sidekiq.testing!(:fake)
+
         subject
 
         expect(response).to have_http_status(200)

@@ -8,6 +8,8 @@ RSpec.describe DeleteCollectionService do
   let!(:collection) { Fabricate(:collection) }
 
   before do
+    Sidekiq.testing!(:fake)
+
     Fabricate.times(2, :collection_item, collection:)
   end
 

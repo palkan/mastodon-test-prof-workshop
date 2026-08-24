@@ -104,7 +104,7 @@ RSpec.describe MoveWorker do
   end
 
   shared_examples 'lists handling' do
-    it 'puts the new account on the list and makes valid lists', :inline_jobs do
+    it 'puts the new account on the list and makes valid lists' do
       subject.perform(source_account.id, target_account.id)
 
       expect(list.accounts.include?(target_account)).to be true
@@ -160,6 +160,8 @@ RSpec.describe MoveWorker do
   describe '#perform' do
     context 'when both accounts are distant' do
       it 'calls UnfollowFollowWorker' do
+        Sidekiq.testing!(:fake)
+
         subject.perform(source_account.id, target_account.id)
         expect(UnfollowFollowWorker).to have_enqueued_sidekiq_job(local_follower.id, source_account.id, target_account.id, false)
       end
@@ -171,6 +173,8 @@ RSpec.describe MoveWorker do
       let(:target_account) { Fabricate(:account) }
 
       it 'calls UnfollowFollowWorker' do
+        Sidekiq.testing!(:fake)
+
         subject.perform(source_account.id, target_account.id)
         expect(UnfollowFollowWorker).to have_enqueued_sidekiq_job(local_follower.id, source_account.id, target_account.id, true)
       end

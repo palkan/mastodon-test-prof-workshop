@@ -298,6 +298,8 @@ RSpec.describe ActivityPub::Activity::Update do
         let(:updated) { Time.now.utc.iso8601 }
 
         before do
+          Sidekiq.testing!(:fake)
+
           status.update!(uri: ActivityPub::TagManager.instance.uri_for(status))
         end
 
@@ -350,6 +352,8 @@ RSpec.describe ActivityPub::Activity::Update do
       end
 
       it 'updates the collection and notifies local user' do
+        Sidekiq.testing!(:fake)
+
         expect { subject.perform }
           .to change { collection.reload.name }.to(featured_collection_json['name'])
           .and enqueue_sidekiq_job(LocalNotificationWorker).with(account.id, collection.id, 'Collection', 'collection_update')

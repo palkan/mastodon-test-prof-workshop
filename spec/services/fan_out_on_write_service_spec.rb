@@ -44,7 +44,7 @@ RSpec.describe FanOutOnWriteService do
   context 'when status is public' do
     let(:visibility) { 'public' }
 
-    it 'adds status to home feed of author and followers and broadcasts', :inline_jobs do
+    it 'adds status to home feed of author and followers and broadcasts' do
       expect { subject.call(status) }
         .to change(bob.notifications, :count).by(1)
         .and change(eve.notifications, :count).by(1)
@@ -70,6 +70,8 @@ RSpec.describe FanOutOnWriteService do
 
     context 'with silenced_account_ids' do
       it 'calls LocalNotificationWorker with the expected arguments' do
+        Sidekiq.testing!(:fake)
+
         expect { subject.call(status, silenced_account_ids: [eve.id]) }
           .to enqueue_sidekiq_job(LocalNotificationWorker).with(bob.id, anything, 'Mention', 'mention')
           .and enqueue_sidekiq_job(LocalNotificationWorker).with(eve.id, anything, 'Mention', 'mention', { 'silenced' => true })
@@ -80,7 +82,7 @@ RSpec.describe FanOutOnWriteService do
   context 'when status is limited' do
     let(:visibility) { 'limited' }
 
-    it 'adds status to home feed of author and mentioned followers and does not broadcast', :inline_jobs do
+    it 'adds status to home feed of author and mentioned followers and does not broadcast' do
       subject.call(status)
 
       expect(status.id)
@@ -96,7 +98,7 @@ RSpec.describe FanOutOnWriteService do
   context 'when status is private' do
     let(:visibility) { 'private' }
 
-    it 'adds status to home feed of author and followers and does not broadcast', :inline_jobs do
+    it 'adds status to home feed of author and followers and does not broadcast' do
       subject.call(status)
 
       expect(status.id)
@@ -111,7 +113,7 @@ RSpec.describe FanOutOnWriteService do
   context 'when status is direct' do
     let(:visibility) { 'direct' }
 
-    it 'is added to the home feed of its author and mentioned followers and does not broadcast', :inline_jobs do
+    it 'is added to the home feed of its author and mentioned followers and does not broadcast' do
       subject.call(status)
 
       expect(status.id)
@@ -135,6 +137,8 @@ RSpec.describe FanOutOnWriteService do
       end
 
       it 'pushes the update to mentioned users through the notifications streaming channel' do
+        Sidekiq.testing!(:fake)
+
         subject.call(status, update: true)
         expect(PushUpdateWorker).to have_enqueued_sidekiq_job(anything, status.id, "timeline:#{eve.id}:notifications", { 'update' => true })
       end

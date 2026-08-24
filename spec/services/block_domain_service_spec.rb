@@ -20,6 +20,8 @@ RSpec.describe BlockDomainService do
     end
 
     it 'creates a domain block, suspends remote accounts with appropriate suspension date, records severed relationships and sends notification', :aggregate_failures do
+      Sidekiq.testing!(:fake)
+
       subject.call(DomainBlock.create!(domain: 'evil.org', severity: :suspend))
 
       expect(DomainBlock.blocked?('evil.org')).to be true
@@ -49,7 +51,7 @@ RSpec.describe BlockDomainService do
   end
 
   describe 'for a silence with reject media' do
-    it 'does not mark the domain as blocked, but silences accounts with an appropriate silencing date, clears media', :aggregate_failures, :inline_jobs do
+    it 'does not mark the domain as blocked, but silences accounts with an appropriate silencing date, clears media', :aggregate_failures do
       subject.call(DomainBlock.create!(domain: 'evil.org', severity: :silence, reject_media: true))
 
       expect(DomainBlock.blocked?('evil.org')).to be false

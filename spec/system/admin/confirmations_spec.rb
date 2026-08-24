@@ -27,7 +27,7 @@ RSpec.describe 'Admin Confirmations' do
     end
   end
 
-  describe 'Resending a confirmation email', :inline_jobs do
+  describe 'Resending a confirmation email' do
     let!(:user) { Fabricate(:user, confirmed_at: confirmed_at) }
 
     context 'when email is not confirmed' do

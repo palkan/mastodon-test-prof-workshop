@@ -28,7 +28,7 @@ RSpec.describe RemoveFromFollowersService do
       stub_request(:post, sender.inbox_url).to_return(status: 200)
     end
 
-    it 'does not create follow relation and sends reject activity', :inline_jobs do
+    it 'does not create follow relation and sends reject activity' do
       subject.call(bob, sender)
 
       expect(bob)

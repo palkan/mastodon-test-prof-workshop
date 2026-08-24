@@ -39,6 +39,8 @@ RSpec.describe Scheduler::SelfDestructScheduler do
       end
 
       context 'when sidekiq is operational' do
+        before { Sidekiq.testing!(:fake) }
+
         let!(:other_account) { Fabricate :account, inbox_url: 'https://host.example/inbox', domain: 'host.example', protocol: :activitypub }
 
         it 'deletes local non-deleted accounts' do

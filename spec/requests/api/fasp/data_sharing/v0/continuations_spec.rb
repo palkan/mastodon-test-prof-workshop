@@ -21,6 +21,8 @@ RSpec.describe 'Api::Fasp::DataSharing::V0::Continuations', feature: :fasp do
     it_behaves_like 'forbidden for unconfirmed provider'
 
     it 'queues a job to continue the given backfill request' do
+      Sidekiq.testing!(:fake)
+
       subject
       expect(response).to have_http_status(204)
       expect(Fasp::BackfillWorker).to have_enqueued_sidekiq_job(backfill_request.id)

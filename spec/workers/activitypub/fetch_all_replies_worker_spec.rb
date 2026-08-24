@@ -123,6 +123,8 @@ RSpec.describe ActivityPub::FetchAllRepliesWorker do
   end
 
   before do
+    Sidekiq.testing!(:fake)
+
     all_items.each do |item|
       next if [top_note_uri, reply_note_uri].include? item
 

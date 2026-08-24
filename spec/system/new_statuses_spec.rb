@@ -2,7 +2,7 @@
 
 require 'rails_helper'
 
-RSpec.describe 'NewStatuses', :inline_jobs, :js, :streaming do
+RSpec.describe 'NewStatuses', :js, :streaming do
   include ProfileStories
 
   let(:email)               { 'test@example.com' }

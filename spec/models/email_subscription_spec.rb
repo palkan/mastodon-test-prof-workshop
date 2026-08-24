@@ -27,7 +27,7 @@ RSpec.describe EmailSubscription do
   describe 'Callbacks' do
     subject { Fabricate(:email_subscription) }
 
-    it 'generates token and delivers confirmation email', :inline_jobs do
+    it 'generates token and delivers confirmation email' do
       emails = capture_emails { subject }
 
       expect(subject.confirmed_at).to be_nil

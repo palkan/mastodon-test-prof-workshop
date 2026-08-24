@@ -8,7 +8,7 @@ RSpec.describe 'Accounts in grouped notifications' do
   let(:scopes)  { 'read:notifications write:notifications' }
   let(:headers) { { 'Authorization' => "Bearer #{token.token}" } }
 
-  describe 'GET /api/v2/notifications/:group_key/accounts', :inline_jobs do
+  describe 'GET /api/v2/notifications/:group_key/accounts' do
     subject do
       get "/api/v2/notifications/#{user.account.notifications.first.group_key}/accounts", headers: headers, params: params
     end

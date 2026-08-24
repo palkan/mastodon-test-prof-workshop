@@ -88,6 +88,8 @@ RSpec.describe ActivityPub::Activity::Follow do
       before { Fabricate :block, account: recipient, target_account: sender }
 
       it 'sends a reject and does not follow' do
+        Sidekiq.testing!(:fake)
+
         subject.perform
 
         expect(sender.requested?(recipient))

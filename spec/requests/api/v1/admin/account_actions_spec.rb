@@ -6,7 +6,7 @@ RSpec.describe 'Account actions' do
   include_context 'with API authentication', user_fabricator: :admin_user, oauth_scopes: 'admin:write admin:write:accounts'
 
   shared_examples 'a successful notification delivery' do
-    it 'notifies the user about the action taken', :inline_jobs do
+    it 'notifies the user about the action taken' do
       emails = capture_emails { subject }
 
       expect(emails.size)

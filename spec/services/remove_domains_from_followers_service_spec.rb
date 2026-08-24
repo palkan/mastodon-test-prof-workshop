@@ -15,6 +15,8 @@ RSpec.describe RemoveDomainsFromFollowersService do
       end
 
       it 'removes followers from supplied domains and sends a notification' do
+        Sidekiq.testing!(:fake)
+
         subject.call(account, ['bad.example'])
 
         expect(account.followers)

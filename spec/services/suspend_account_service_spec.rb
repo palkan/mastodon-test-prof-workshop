@@ -3,6 +3,8 @@
 require 'rails_helper'
 
 RSpec.describe SuspendAccountService do
+  before { Sidekiq.testing!(:fake) }
+
   shared_examples 'common behavior' do
     subject { described_class.new.call(account) }
 

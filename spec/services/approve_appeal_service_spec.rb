@@ -25,7 +25,7 @@ RSpec.describe ApproveAppealService do
         deleted_media.status.discard!
       end
 
-      it 'approves the appeal, marks the statuses as not sensitive and notifies target account about the approval', :inline_jobs do
+      it 'approves the appeal, marks the statuses as not sensitive and notifies target account about the approval' do
         emails = capture_emails { subject.call(appeal, account) }
 
         expect(appeal.reload).to be_approved

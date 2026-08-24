@@ -8,7 +8,7 @@ RSpec.describe 'Admin Announcement Mail Distributions' do
 
   before { sign_in(user) }
 
-  describe 'Sending an announcement notification', :inline_jobs do
+  describe 'Sending an announcement notification' do
     it 'marks the announcement as notified and sends the email' do
       visit admin_announcement_preview_path(announcement)
       expect(page)

@@ -54,6 +54,8 @@ RSpec.describe ActivityPub::ProcessFeaturedCollectionService do
 
   context 'when URIs match up' do
     it 'creates a collection and queues jobs to handle its items' do
+      Sidekiq.testing!(:fake)
+
       expect { subject.call(account, featured_collection_json) }.to change(account.collections, :count).by(1)
 
       new_collection = account.collections.last
@@ -80,6 +82,8 @@ RSpec.describe ActivityPub::ProcessFeaturedCollectionService do
     end
 
     it 'sets language and summary correctly' do
+      Sidekiq.testing!(:fake)
+
       expect { subject.call(account, featured_collection_json) }.to change(account.collections, :count).by(1)
 
       new_collection = account.collections.last
@@ -94,6 +98,8 @@ RSpec.describe ActivityPub::ProcessFeaturedCollectionService do
     end
 
     it 'uses the `id` instead' do
+      Sidekiq.testing!(:fake)
+
       subject.call(account, featured_collection_json)
 
       expect(Collection.last.url).to eq 'https://example.com/featured_collections/1'
@@ -109,6 +115,8 @@ RSpec.describe ActivityPub::ProcessFeaturedCollectionService do
     end
 
     it 'updates the existing collection, removes the item that no longer exists and queues a jobs to fetch the other items' do
+      Sidekiq.testing!(:fake)
+
       expect { subject.call(account, featured_collection_json) }
         .to change(collection.collection_items, :count).by(-1)
 

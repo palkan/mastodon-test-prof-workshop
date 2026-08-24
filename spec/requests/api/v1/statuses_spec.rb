@@ -475,6 +475,8 @@ RSpec.describe '/api/v1/statuses' do
         delete "/api/v1/statuses/#{status.id}", headers: headers
       end
 
+      before { Sidekiq.testing!(:fake) }
+
       let(:scopes) { 'write:statuses' }
       let(:status) { Fabricate(:status, account: user.account) }
       let!(:media) { Fabricate(:media_attachment, status: status) }

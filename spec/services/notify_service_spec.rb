@@ -110,7 +110,7 @@ RSpec.describe NotifyService do
     context 'when email notification is enabled' do
       let(:enabled) { true }
 
-      it 'sends email', :inline_jobs do
+      it 'sends email' do
         emails = capture_emails { subject }
 
         expect(emails.size)

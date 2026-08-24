@@ -28,7 +28,7 @@ RSpec.describe ReportService do
       expect(report.application).to be_nil
     end
 
-    context 'when forward is true', :inline_jobs do
+    context 'when forward is true' do
       let(:forward) { true }
 
       it 'has a URI and sends ActivityPub payload' do

@@ -2,7 +2,7 @@
 
 require 'rails_helper'
 
-RSpec.describe RemoveStatusService, :inline_jobs do
+RSpec.describe RemoveStatusService do
   subject { described_class.new }
 
   let!(:alice)  { Fabricate(:account) }
@@ -130,11 +130,13 @@ RSpec.describe RemoveStatusService, :inline_jobs do
     )
   end
 
-  context 'when removed status is a quote of a local user', inline_jobs: false do
+  context 'when removed status is a quote of a local user' do
     let(:original_status) { Fabricate(:status, account: alice) }
     let(:status) { Fabricate(:status, account: jeff) }
 
     before do
+      Sidekiq.testing!(:fake)
+
       bill.follow!(jeff)
       Fabricate(:quote, status: status, quoted_status: original_status, state: :accepted)
       original_status.discard

@@ -9,6 +9,8 @@ RSpec.describe BulkImportService do
   let(:import) { Fabricate(:bulk_import, account: account, type: import_type, overwrite: overwrite, state: :in_progress, imported_items: 0, processed_items: 0) }
 
   before do
+    Sidekiq.testing!(:fake)
+
     import.update(total_items: import.rows.count)
   end
 

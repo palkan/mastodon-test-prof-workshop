@@ -7,7 +7,7 @@ RSpec.describe 'Notifications' do
 
   let(:user)    { Fabricate(:user, account_attributes: { username: 'alice' }) }
 
-  describe 'GET /api/v2/notifications/unread_count', :inline_jobs do
+  describe 'GET /api/v2/notifications/unread_count' do
     subject do
       get '/api/v2/notifications/unread_count', headers: headers, params: params
     end
@@ -107,7 +107,7 @@ RSpec.describe 'Notifications' do
     end
   end
 
-  describe 'GET /api/v2/notifications', :inline_jobs do
+  describe 'GET /api/v2/notifications' do
     subject do
       get '/api/v2/notifications', headers: headers, params: params
     end

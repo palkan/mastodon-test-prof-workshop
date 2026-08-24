@@ -78,7 +78,7 @@ RSpec.describe EmailDistributionWorker do
             it { is_expected.to be_nil }
           end
 
-          context 'when user has statuses', :inline_jobs do
+          context 'when user has statuses' do
             let(:status) { Fabricate :status, account: }
 
             before do

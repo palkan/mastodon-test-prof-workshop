@@ -3,6 +3,8 @@
 require 'rails_helper'
 
 RSpec.describe Account::FaspConcern, feature: :fasp do
+  before { Sidekiq.testing!(:fake) }
+
   describe '#create' do
     let(:discoverable_attributes) do
       Fabricate.attributes_for(:account).except('user_id')

@@ -7,7 +7,7 @@ RSpec.describe 'Admin Change Emails' do
 
   before { sign_in admin }
 
-  describe 'Changing the email address for a user', :inline_jobs do
+  describe 'Changing the email address for a user' do
     let(:user) { Fabricate :user }
 
     it 'updates user details and sends email' do

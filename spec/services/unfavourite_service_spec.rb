@@ -23,6 +23,8 @@ RSpec.describe UnfavouriteService do
         let(:account) { Fabricate(:account, domain: 'host.example', protocol: :activitypub) }
 
         it 'destroys the favourite and sends a notification' do
+          Sidekiq.testing!(:fake)
+
           subject.call(favourite.account, status)
 
           expect { favourite.reload }

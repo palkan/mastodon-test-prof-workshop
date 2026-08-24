@@ -12,6 +12,8 @@ RSpec.describe ActivityPub::QuoteRequestWorker do
 
   describe '#perform' do
     it 'sends the expected QuoteRequest activity' do
+      Sidekiq.testing!(:fake)
+
       subject.perform(quote.id)
 
       expect(ActivityPub::DeliveryWorker)

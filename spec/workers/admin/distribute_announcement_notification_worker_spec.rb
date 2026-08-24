@@ -16,7 +16,7 @@ RSpec.describe Admin::DistributeAnnouncementNotificationWorker do
       let(:announcement) { Fabricate(:announcement) }
       let!(:user) { Fabricate :user, confirmed_at: 3.days.ago }
 
-      it 'sends the announcement via email', :inline_jobs do
+      it 'sends the announcement via email' do
         emails = capture_emails { worker.perform(announcement.id) }
 
         expect(emails.size)

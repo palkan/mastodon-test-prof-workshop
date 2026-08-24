@@ -179,6 +179,8 @@ RSpec.describe 'ActivityPub Inboxes' do
         end
 
         it 'adds attributes to current span' do
+          Sidekiq.testing!(:fake)
+
           subject
 
           expect(response).to have_http_status(202)

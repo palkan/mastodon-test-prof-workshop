@@ -28,6 +28,8 @@ RSpec.describe ActivityPub::SynchronizeFollowersService do
   end
 
   before do
+    Sidekiq.testing!(:fake)
+
     alice.follow!(actor)
     bob.follow!(actor)
     mallory.request_follow!(actor)
