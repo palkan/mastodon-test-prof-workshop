@@ -31,6 +31,8 @@ RSpec.describe ActivityPub::FetchRemoteStatusService do
 
   describe '#call' do
     before do
+      Sidekiq.testing!(:fake)
+
       follow
       existing_status
       subject.call(object[:id])
@@ -336,7 +338,7 @@ RSpec.describe ActivityPub::FetchRemoteStatusService do
     end
   end
 
-  context 'with statuses referencing other statuses', :inline_jobs do
+  context 'with statuses referencing other statuses' do
     before do
       stub_const 'ActivityPub::FetchRemoteStatusService::DISCOVERIES_PER_REQUEST', 3
     end

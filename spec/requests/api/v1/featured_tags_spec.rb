@@ -138,7 +138,7 @@ RSpec.describe 'FeaturedTags' do
     let!(:featured_tag) { FeaturedTag.create(name: 'tag', account: user.account) }
     let(:id) { featured_tag.id }
 
-    it 'returns http success with an empty body and deletes the featured tag', :inline_jobs do
+    it 'returns http success with an empty body and deletes the featured tag' do
       delete "/api/v1/featured_tags/#{id}", headers: headers
 
       expect(response).to have_http_status(200)

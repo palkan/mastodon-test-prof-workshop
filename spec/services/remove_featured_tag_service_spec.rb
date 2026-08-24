@@ -11,6 +11,8 @@ RSpec.describe RemoveFeaturedTagService do
         let(:account) { Fabricate(:account, domain: nil) }
 
         it 'destroys the featured tag and sends a distribution' do
+          Sidekiq.testing!(:fake)
+
           subject.call(account, featured_tag)
 
           expect { featured_tag.reload }

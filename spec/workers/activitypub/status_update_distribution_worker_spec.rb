@@ -9,6 +9,8 @@ RSpec.describe ActivityPub::StatusUpdateDistributionWorker do
   let(:follower) { Fabricate(:account, protocol: :activitypub, inbox_url: 'http://example.com', domain: 'example.com') }
 
   describe '#perform' do
+    before { Sidekiq.testing!(:fake) }
+
     context 'with an explicitly edited status' do
       before do
         follower.follow!(status.account)

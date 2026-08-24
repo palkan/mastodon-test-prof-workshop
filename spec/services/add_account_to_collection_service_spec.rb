@@ -23,6 +23,8 @@ RSpec.describe AddAccountToCollectionService do
 
       context 'when the account is local' do
         it 'federates an `Add` activity and schedules a notification' do
+          Sidekiq.testing!(:fake)
+
           subject.call(collection, account)
 
           expect(ActivityPub::CollectionRawDistributionWorker)
@@ -38,6 +40,8 @@ RSpec.describe AddAccountToCollectionService do
         let(:account) { Fabricate(:remote_account, feature_approval_policy: (0b10 << 16)) }
 
         it 'marks the item as `pending` and federates a `FeatureRequest` activity' do
+          Sidekiq.testing!(:fake)
+
           subject.call(collection, account)
 
           new_item = collection.collection_items.last

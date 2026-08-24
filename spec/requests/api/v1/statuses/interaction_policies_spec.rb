@@ -45,6 +45,8 @@ RSpec.describe 'Interaction policies' do
 
     context 'when changing the interaction policy' do
       it 'changes the interaction policy, returns the updated status, and schedules distribution jobs' do
+        Sidekiq.testing!(:fake)
+
         expect { subject }
           .to change { status.reload.quote_approval_policy }.to(InteractionPolicy::POLICY_FLAGS[:followers] << 16)
 

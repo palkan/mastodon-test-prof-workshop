@@ -32,7 +32,7 @@ RSpec.describe 'Reports' do
 
     it_behaves_like 'forbidden for wrong scope', 'read read:reports'
 
-    it 'creates a report', :aggregate_failures, :inline_jobs do
+    it 'creates a report', :aggregate_failures do
       emails = capture_emails { subject }
 
       expect(response).to have_http_status(200)
@@ -85,7 +85,7 @@ RSpec.describe 'Reports' do
       let(:status) { Fabricate(:status, account: target_account) }
       let(:status_ids) { [status.id] }
 
-      it 'creates a report including the status ids', :aggregate_failures, :inline_jobs do
+      it 'creates a report including the status ids', :aggregate_failures do
         subject
 
         expect(response).to have_http_status(200)
@@ -117,7 +117,7 @@ RSpec.describe 'Reports' do
       let(:collection) { Fabricate(:collection, account: target_account) }
       let(:collection_ids) { [collection.id] }
 
-      it 'creates a report including the collection ids', :aggregate_failures, :inline_jobs do
+      it 'creates a report including the collection ids', :aggregate_failures do
         subject
 
         expect(response).to have_http_status(200)

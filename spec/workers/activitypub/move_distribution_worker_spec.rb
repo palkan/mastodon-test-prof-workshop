@@ -16,6 +16,8 @@ RSpec.describe ActivityPub::MoveDistributionWorker do
     end
 
     it 'delivers to followers and known blockers' do
+      Sidekiq.testing!(:fake)
+
       subject.perform(migration.id)
 
       expect(ActivityPub::DeliveryWorker)

@@ -23,6 +23,8 @@ RSpec.describe 'Api::Fasp::DataSharing::V0::BackfillRequests', feature: :fasp do
 
     context 'with valid parameters' do
       it 'creates a new backfill request' do
+        Sidekiq.testing!(:fake)
+
         expect { subject }.to change(Fasp::BackfillRequest, :count).by(1)
         expect(response).to have_http_status(201)
       end

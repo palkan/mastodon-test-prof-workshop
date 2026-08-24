@@ -17,6 +17,8 @@ RSpec.describe 'Auth Confirmation' do
       let!(:user) { Fabricate(:user, confirmation_token: 'foobar', confirmed_at: nil) }
 
       it 'redirects to login and queues worker' do
+        Sidekiq.testing!(:fake)
+
         get user_confirmation_path(confirmation_token: 'foobar')
 
         expect(response)

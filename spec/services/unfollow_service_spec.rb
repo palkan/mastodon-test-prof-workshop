@@ -9,6 +9,8 @@ RSpec.describe UnfollowService do
   let(:followee) { Fabricate(:account) }
 
   before do
+    Sidekiq.testing!(:fake)
+
     follower.follow!(followee)
   end
 

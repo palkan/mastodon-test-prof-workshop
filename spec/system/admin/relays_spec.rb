@@ -20,6 +20,8 @@ RSpec.describe 'Admin Relays' do
 
     describe 'Creating a new relay' do
       it 'creates new record with valid attributes' do
+        Sidekiq.testing!(:fake)
+
         visit admin_relays_path
 
         # Visit new page
@@ -64,6 +66,8 @@ RSpec.describe 'Admin Relays' do
       let!(:relay) { Fabricate :relay, state: :accepted }
 
       it 'switches state as requested' do
+        Sidekiq.testing!(:fake)
+
         visit admin_relays_path
 
         # Disable the initially enabled record

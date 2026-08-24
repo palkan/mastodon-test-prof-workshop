@@ -23,6 +23,8 @@ RSpec.describe 'Settings Imports' do
       let(:confirm) { post confirm_settings_import_path(id: user.account.bulk_imports.last.id) }
 
       it 'redirects to confirm_settings_import_path' do
+        Sidekiq.testing!(:fake)
+
         subject
         expect(response).to have_http_status(302)
           .and redirect_to(settings_import_path(id: user.account.bulk_imports.last.id))

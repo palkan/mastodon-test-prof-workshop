@@ -30,7 +30,7 @@ RSpec.describe RejectFollowService do
       stub_request(:post, bob.inbox_url).to_return(status: 200)
     end
 
-    it 'removes follow request, does not create relation, sends reject activity', :inline_jobs do
+    it 'removes follow request, does not create relation, sends reject activity' do
       subject.call(bob, sender)
 
       expect(bob)

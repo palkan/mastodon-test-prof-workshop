@@ -25,7 +25,7 @@ RSpec.describe 'Admin Disputes Appeals' do
   end
 
   describe 'Approving an appeal' do
-    it 'redirects back to the strike page and notifies target account about approved appeal', :inline_jobs do
+    it 'redirects back to the strike page and notifies target account about approved appeal' do
       visit admin_disputes_strike_path(strike)
 
       expect { click_on I18n.t('disputes.strikes.approve_appeal') }
@@ -44,7 +44,7 @@ RSpec.describe 'Admin Disputes Appeals' do
   end
 
   describe 'Rejecting an appeal' do
-    it 'redirects back to the strike page and notifies target account about rejected appeal', :inline_jobs do
+    it 'redirects back to the strike page and notifies target account about rejected appeal' do
       visit admin_disputes_strike_path(strike)
 
       expect { click_on I18n.t('disputes.strikes.reject_appeal') }

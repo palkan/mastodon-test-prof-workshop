@@ -8,7 +8,7 @@ RSpec.describe 'Admin TermsOfService Tests' do
 
   before { sign_in(user) }
 
-  describe 'Sending test Announcement email', :inline_jobs do
+  describe 'Sending test Announcement email' do
     it 'generates the test email' do
       visit admin_announcement_preview_path(announcement)
       expect(page)

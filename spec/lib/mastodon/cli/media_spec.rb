@@ -107,6 +107,7 @@ RSpec.describe Mastodon::CLI::Media do
           remote_quoting_media.update!(status: remote_quoting_status)
 
           non_interacted_status = Fabricate(:status, account: remote_account)
+          non_interacted_status.bookmarks.destroy_all
 
           media_attachment.update(status: non_interacted_status)
 

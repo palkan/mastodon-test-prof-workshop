@@ -100,6 +100,8 @@ RSpec.describe ActivityPub::ProcessAccountService do
     end
 
     it 'parses and sets the URIs, queues jobs to synchronize' do
+      Sidekiq.testing!(:fake)
+
       account = subject.call(payload)
 
       expect(account.featured_collection_url).to eq 'https://foo.test/featured'
@@ -497,6 +499,8 @@ RSpec.describe ActivityPub::ProcessAccountService do
       let!(:conflicting_account) { Fabricate(:remote_account, username: 'alice', domain: 'example.com', uri: 'https://foo.test/original_alice', inbox_url: 'https://foo.test/original_alice/inbox') }
 
       it 'updates the profile without creating a new one or calling AccountMergingWorker, renames conflicting and schedules refresh' do
+        Sidekiq.testing!(:fake)
+
         expect { subject.call(payload) }
           .to change { account.reload.username }.from('bob').to('alice')
           .and change { account.reload.domain }.from('foo.test').to('example.com')
@@ -579,6 +583,8 @@ RSpec.describe ActivityPub::ProcessAccountService do
       let!(:conflicting_account) { Fabricate(:remote_account, username: 'alice', domain: 'foo.test', uri: 'https://foo.test/original_alice', inbox_url: 'https://foo.test/original_alice/inbox') }
 
       it 'updates the profile without creating a new one or calling AccountMergingWorker, renames conflicting and schedules refresh' do
+        Sidekiq.testing!(:fake)
+
         expect { subject.call(payload) }
           .to change { account.reload.username }.from('bob').to('alice')
           .and not_change { account.reload.domain }
@@ -678,6 +684,8 @@ RSpec.describe ActivityPub::ProcessAccountService do
     before { stub_webfinger! }
 
     it 'queues featured collection synchronization', :aggregate_failures do
+      Sidekiq.testing!(:fake)
+
       account = subject.call(payload)
 
       expect(account.featured_collection_url).to eq ''
@@ -864,7 +872,7 @@ RSpec.describe ActivityPub::ProcessAccountService do
       end
     end
 
-    it 'creates accounts without exceeding rate limit', :inline_jobs do
+    it 'creates accounts without exceeding rate limit' do
       expect { subject.call(payload) }
         .to create_some_remote_accounts
         .and create_fewer_than_rate_limit_accounts

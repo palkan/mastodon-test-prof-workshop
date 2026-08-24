@@ -11,6 +11,8 @@ RSpec.describe WebhookService do
       before { freeze_time Time.current }
 
       it 'finds and delivers webhook payloads' do
+        Sidekiq.testing!(:fake)
+
         expect { subject.call('report.created', report) }
           .to enqueue_sidekiq_job(Webhooks::DeliveryWorker)
           .with(

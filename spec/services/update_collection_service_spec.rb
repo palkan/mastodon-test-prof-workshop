@@ -11,6 +11,8 @@ RSpec.describe UpdateCollectionService do
   describe '#call' do
     context 'when given valid parameters' do
       it 'updates the collection, sends a notification and federates an `Update` activity' do
+        Sidekiq.testing!(:fake)
+
         expect { subject.call(collection, { name: 'Newly updated name' }) }
           .to change(collection, :name).to('Newly updated name')
           .and enqueue_sidekiq_job(LocalNotificationWorker).with(collection_item.account_id, collection.id, collection.class.name, 'collection_update')

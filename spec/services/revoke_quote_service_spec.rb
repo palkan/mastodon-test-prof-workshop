@@ -18,6 +18,8 @@ RSpec.describe RevokeQuoteService do
 
   context 'with an accepted quote' do
     it 'revokes the quote and sends a Delete activity' do
+      Sidekiq.testing!(:fake)
+
       expect { described_class.new.call(quote) }
         .to change { quote.reload.state }.from('accepted').to('revoked')
         .and enqueue_sidekiq_job(ActivityPub::DeliveryWorker).with(

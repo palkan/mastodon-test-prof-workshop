@@ -15,6 +15,8 @@ RSpec.describe DeleteCollectionItemService do
 
     context 'when the collection is local' do
       it 'federates a `Remove` activity' do
+        Sidekiq.testing!(:fake)
+
         subject.call(collection_item)
 
         expect(ActivityPub::CollectionRawDistributionWorker).to have_enqueued_sidekiq_job

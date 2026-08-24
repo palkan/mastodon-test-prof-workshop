@@ -27,7 +27,7 @@ RSpec.describe Mastodon::CLI::PreviewCards do
           expect { subject }
             .to output_results(
               'Removed media from 2 preview cards',
-              'approx. 119 KB'
+              'approx. 72.5 KB'
             )
         end
       end
@@ -39,7 +39,7 @@ RSpec.describe Mastodon::CLI::PreviewCards do
           expect { subject }
             .to output_results(
               'Removed media from 1 link-type preview cards',
-              'approx. 59.6 KB'
+              'approx. 36.2 KB'
             )
         end
       end
@@ -51,7 +51,7 @@ RSpec.describe Mastodon::CLI::PreviewCards do
           expect { subject }
             .to output_results(
               'Removed media from 1 preview cards',
-              'approx. 59.6 KB'
+              'approx. 36.2 KB'
             )
         end
       end

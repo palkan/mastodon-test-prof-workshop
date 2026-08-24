@@ -9,6 +9,8 @@ RSpec.describe DismissNotificationRequestService do
     let(:request) { Fabricate(:notification_request, account: receiver, from_account: sender) }
 
     it 'destroys the request and queues a worker', :aggregate_failures do
+      Sidekiq.testing!(:fake)
+
       expect { described_class.new.call(request) }
         .to change(request, :destroyed?).to(true)
 

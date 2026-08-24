@@ -2,7 +2,7 @@
 
 require 'rails_helper'
 
-RSpec.describe Account::StatusesSearch, :inline_jobs do
+RSpec.describe Account::StatusesSearch do
   describe 'Callbacks for indexable changes' do
     let(:account) { Fabricate :account, indexable: }
     let(:public_statuses_results) { PublicStatusesIndex.filter(term: { account_id: account.id }) }

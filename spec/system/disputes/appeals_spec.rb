@@ -8,7 +8,7 @@ RSpec.describe 'Dispute Appeals' do
 
   before { sign_in user }
 
-  describe 'Submitting an appeal', :inline_jobs do
+  describe 'Submitting an appeal' do
     let(:strike) { Fabricate(:account_warning, target_account: user.account) }
 
     it 'Submits the appeal and notifies admins' do

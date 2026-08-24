@@ -153,7 +153,7 @@ RSpec.describe Admin::DomainBlocksController do
     end
   end
 
-  describe 'PUT #update', :inline_jobs do
+  describe 'PUT #update' do
     subject do
       post :update, params: { :id => domain_block.id, :domain_block => { domain: 'example.com', severity: new_severity }, 'confirm' => '' }
     end

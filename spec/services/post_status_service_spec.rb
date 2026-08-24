@@ -308,6 +308,8 @@ RSpec.describe PostStatusService do
   end
 
   it 'correctly requests a quote for remote posts' do
+    Sidekiq.testing!(:fake)
+
     account = Fabricate(:account)
     quoted_status = Fabricate(:status, account: Fabricate(:account, domain: 'example.com'))
 
@@ -316,6 +318,8 @@ RSpec.describe PostStatusService do
   end
 
   it 'allows quotes with spoilers and no text' do
+    Sidekiq.testing!(:fake)
+
     account = Fabricate(:account)
     quoted_status = Fabricate(:status, account: Fabricate(:account, domain: 'example.com'))
 

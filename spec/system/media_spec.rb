@@ -6,13 +6,17 @@ RSpec.describe 'Media' do
   describe 'Player page' do
     let(:status) { Fabricate :status }
 
-    before { status.media_attachments << media }
+    before do
+      Sidekiq.testing!(:fake)
+
+      status.media_attachments << media
+    end
 
     context 'when signed in' do
       before { sign_in Fabricate(:user) }
 
       context 'when media type is video' do
-        let(:media) { Fabricate :media_attachment, type: :video }
+        let(:media) { Fabricate(:media_attachment, type: :video).tap { |media| media.update_column(:type, :video) } }
 
         it 'visits the player page and renders media' do
           visit player_medium_path(media)
@@ -36,7 +40,7 @@ RSpec.describe 'Media' do
       end
 
       context 'when media type is audio' do
-        let(:media) { Fabricate :media_attachment, type: :audio }
+        let(:media) { Fabricate(:media_attachment, type: :audio).tap { |media| media.update_column(:type, :audio) } }
 
         it 'visits the player page and renders media' do
           visit player_medium_path(media)

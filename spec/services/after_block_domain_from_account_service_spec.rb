@@ -17,6 +17,8 @@ RSpec.describe AfterBlockDomainFromAccountService do
   end
 
   it 'purge followers from blocked domain, remove notification permissions, sends `Reject->Follow`, and records severed relationships', :aggregate_failures do
+    Sidekiq.testing!(:fake)
+
     expect { subject.call(alice, 'evil.org') }
       .to change { wolf.following?(alice) }.from(true).to(false)
       .and change { NotificationPermission.exists?(account: alice, from_account: wolf) }.from(true).to(false)

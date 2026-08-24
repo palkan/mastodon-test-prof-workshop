@@ -14,6 +14,8 @@ RSpec.describe UnmuteService do
         before { Fabricate :follow, account: account, target_account: target_account }
 
         it 'removes the account mute and sets up a merge' do
+          Sidekiq.testing!(:fake)
+
           expect { subject.call(account, target_account) }
             .to remove_account_mute
           expect(MergeWorker).to have_enqueued_sidekiq_job(target_account.id, account.id, 'home')

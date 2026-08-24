@@ -2,7 +2,7 @@
 
 require 'rails_helper'
 
-RSpec.describe AppealService, :inline_jobs do
+RSpec.describe AppealService do
   describe '#call' do
     let!(:admin) { Fabricate(:admin_user) }
 

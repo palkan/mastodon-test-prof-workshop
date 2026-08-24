@@ -7,6 +7,8 @@ RSpec.describe Fasp::BackfillWorker do
 
   subject { described_class.new.perform(backfill_request.id) }
 
+  before { Sidekiq.testing!(:fake) }
+
   let(:provider) { Fabricate(:confirmed_fasp) }
   let(:backfill_request) { Fabricate(:fasp_backfill_request, fasp_provider: provider) }
   let(:status) { Fabricate(:status) }

@@ -42,7 +42,7 @@ RSpec.describe ActivityPub::Activity::Delete do
         expect(Status.find_by(id: status.id)).to be_nil
       end
 
-      it 'sends delete activity to followers of rebloggers', :inline_jobs do
+      it 'sends delete activity to followers of rebloggers' do
         expect(a_request(:post, 'http://example.com/inbox')).to have_been_made.once
       end
 
@@ -136,6 +136,8 @@ RSpec.describe ActivityPub::Activity::Delete do
       end
 
       it 'revokes the collection item and federates a `Delete` activity' do
+        Sidekiq.testing!(:fake)
+
         subject.perform
 
         expect(collection_item.reload).to be_revoked

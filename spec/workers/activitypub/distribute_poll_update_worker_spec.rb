@@ -16,6 +16,8 @@ RSpec.describe ActivityPub::DistributePollUpdateWorker do
     end
 
     it 'delivers to followers' do
+      Sidekiq.testing!(:fake)
+
       subject.perform(status.id)
 
       expect(ActivityPub::DeliveryWorker)

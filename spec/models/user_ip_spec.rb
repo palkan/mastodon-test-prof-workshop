@@ -9,8 +9,8 @@ RSpec.describe UserIp do
       let!(:other_user) { Fabricate :user, sign_up_ip: '10.0.10.0', created_at: 10.days.ago }
 
       it 'returns records ordered by most recent usage' do
-        expect(described_class.by_latest_used)
-          .to eq([other_user.ips.last, user.ips.last])
+        expect(described_class.by_latest_used.where(ip: [user.sign_up_ip, other_user.sign_up_ip]).map(&:ip))
+          .to eq([IPAddr.new('10.0.10.0'), IPAddr.new('192.168.0.1')])
       end
     end
 
@@ -19,9 +19,9 @@ RSpec.describe UserIp do
       let!(:other_user) { Fabricate :user, sign_up_ip: '10.0.10.0' }
 
       it 'returns records ordered by rank' do
-        expect(described_class.contained_by('192.168.0.0/24'))
-          .to include(user.ips.last)
-          .and not_include(other_user.ips.last)
+        expect(described_class.contained_by('192.168.0.0/24').map(&:ip))
+          .to include(IPAddr.new('192.168.0.1'))
+          .and not_include(IPAddr.new('10.0.10.0'))
       end
     end
   end

@@ -70,6 +70,8 @@ RSpec.describe ActivityPub::FetchRemoteActorService do
       end
 
       it 'returns nil and marks the known account for deletion' do
+        Sidekiq.testing!(:fake)
+
         expect(account).to be_nil
         expect(known_account.reload.suspended?).to be true
         expect(a_request(:get, 'https://example.com/alice')).to have_been_made.once

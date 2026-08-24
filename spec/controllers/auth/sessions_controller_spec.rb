@@ -139,7 +139,7 @@ RSpec.describe Auth::SessionsController do
           user.update(current_sign_in_at: 1.month.ago)
         end
 
-        it 'logs the user in and sends suspicious email and redirects home', :inline_jobs do
+        it 'logs the user in and sends suspicious email and redirects home' do
           emails = capture_emails { subject }
 
           expect(response)
@@ -279,7 +279,7 @@ RSpec.describe Auth::SessionsController do
             travel_to '2023-12-20T10:00:00Z'
           end
 
-          it 'does not log the user in, sets a flash message, and sends a suspicious sign in email', :inline_jobs do
+          it 'does not log the user in, sets a flash message, and sends a suspicious sign in email' do
             emails = capture_emails do
               expect { process_maximum_two_factor_attempts }
                 .to change(user.login_activities.where(success: false), :count).by(1)

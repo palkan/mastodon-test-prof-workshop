@@ -8,7 +8,7 @@ RSpec.describe 'Auth Passwords' do
   let!(:access_token) { Fabricate(:access_token, resource_owner_id: user.id) }
   let!(:web_push_subscription) { Fabricate(:web_push_subscription, access_token: access_token) }
 
-  describe 'Resetting a password', :inline_jobs do
+  describe 'Resetting a password' do
     let(:new_password) { 'New.Pass.123' }
 
     before do

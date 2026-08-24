@@ -50,7 +50,7 @@ RSpec.describe BlockService do
       stub_request(:post, 'http://example.com/inbox').to_return(status: 200)
     end
 
-    it 'creates a blocking relation and send block activity', :inline_jobs do
+    it 'creates a blocking relation and send block activity' do
       subject.call(sender, bob)
 
       expect(sender)

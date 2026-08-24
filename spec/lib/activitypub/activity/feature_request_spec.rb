@@ -3,6 +3,8 @@
 require 'rails_helper'
 
 RSpec.describe ActivityPub::Activity::FeatureRequest do
+  before { Sidekiq.testing!(:fake) }
+
   let(:sender)    { Fabricate(:remote_account) }
   let(:recipient) { Fabricate(:account, discoverable:) }
   let(:collection) { Fabricate(:remote_collection, account: sender) }

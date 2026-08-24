@@ -18,7 +18,6 @@ require 'paperclip/matchers'
 require 'capybara/rspec'
 require 'chewy/rspec'
 require 'pundit/rspec'
-require 'test_prof/recipes/rspec/before_all'
 
 Rails.root.glob('spec/support/**/*.rb').each { |f| require f }
 
@@ -106,13 +105,8 @@ RSpec.configure do |config|
     self.use_transactional_tests = true
   end
 
-  config.around do |example|
-    if example.metadata[:inline_jobs] == true
-      Sidekiq.testing!(:inline)
-    else
-      Sidekiq.testing!(:fake)
-    end
-    example.run
+  config.before do
+    Sidekiq.testing!(:inline)
   end
 
   config.before :each, type: :cli do
@@ -121,15 +115,6 @@ RSpec.configure do |config|
 
   config.before do |example|
     allow(Resolv::DNS).to receive(:open).and_raise('Real DNS queries are disabled, stub Resolv::DNS as needed') unless example.metadata[:type] == :system
-  end
-
-  config.before do |example|
-    unless example.metadata[:attachment_processing]
-      # rubocop:disable RSpec/AnyInstance
-      allow_any_instance_of(Paperclip::Attachment).to receive(:post_process).and_return(true)
-      allow_any_instance_of(Paperclip::MediaTypeSpoofDetector).to receive(:spoofed?).and_return(false)
-      # rubocop:enable RSpec/AnyInstance
-    end
   end
 
   config.before :each, type: :request do

@@ -98,6 +98,8 @@ RSpec.describe 'Profile API' do
     end
 
     it 'returns http success with updated JSON attributes' do
+      Sidekiq.testing!(:fake)
+
       subject
 
       expect(response)
@@ -142,6 +144,8 @@ RSpec.describe 'Profile API' do
     end
 
     it 'returns http success and deletes the avatar, preserves the header, queues up distribution' do
+      Sidekiq.testing!(:fake)
+
       delete '/api/v1/profile/avatar', headers: headers
 
       expect(response).to have_http_status(200)
@@ -166,6 +170,8 @@ RSpec.describe 'Profile API' do
     end
 
     it 'returns http success, preserves the avatar, deletes the header, queues up distribution' do
+      Sidekiq.testing!(:fake)
+
       delete '/api/v1/profile/header', headers: headers
 
       expect(response).to have_http_status(200)

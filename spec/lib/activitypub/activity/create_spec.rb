@@ -112,6 +112,8 @@ RSpec.describe ActivityPub::Activity::Create do
     end
 
     before do
+      Sidekiq.testing!(:fake)
+
       follower.follow!(sender)
     end
 
@@ -334,6 +336,8 @@ RSpec.describe ActivityPub::Activity::Create do
         end
 
         it 'creates a status and schedules link fetching job for first link' do
+          Sidekiq.testing!(:fake)
+
           expect { subject.perform }
             .to change(sender.statuses, :count).by(1)
 
@@ -361,6 +365,8 @@ RSpec.describe ActivityPub::Activity::Create do
         end
 
         it 'creates a status and schedules link fetching job for specified link' do
+          Sidekiq.testing!(:fake)
+
           expect { subject.perform }
             .to change(sender.statuses, :count).by(1)
 

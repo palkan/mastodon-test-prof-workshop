@@ -10,6 +10,8 @@ RSpec.describe CreateFeaturedTagService do
       let(:account) { Fabricate(:account, domain: nil) }
 
       it 'creates a new featured tag and distributes' do
+        Sidekiq.testing!(:fake)
+
         expect { subject.call(account, tag) }
           .to change(FeaturedTag, :count).by(1)
         expect(ActivityPub::AccountRawDistributionWorker)

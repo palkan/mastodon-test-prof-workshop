@@ -3,6 +3,8 @@
 require 'rails_helper'
 
 RSpec.describe Favourite::FaspConcern, feature: :fasp do
+  before { Sidekiq.testing!(:fake) }
+
   describe '#create' do
     it 'queues a job to notify provider' do
       expect { Fabricate(:favourite) }.to enqueue_sidekiq_job(Fasp::AnnounceTrendWorker)

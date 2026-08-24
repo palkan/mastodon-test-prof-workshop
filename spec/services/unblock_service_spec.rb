@@ -28,7 +28,7 @@ RSpec.describe UnblockService do
       stub_request(:post, 'http://example.com/inbox').to_return(status: 200)
     end
 
-    it 'destroys the blocking relation and sends unblock activity', :inline_jobs do
+    it 'destroys the blocking relation and sends unblock activity' do
       subject.call(sender, bob)
 
       expect(sender)

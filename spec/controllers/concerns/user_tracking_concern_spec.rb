@@ -75,7 +75,7 @@ RSpec.describe UserTrackingConcern do
         expect(redis.ttl("account:#{user.account_id}:regeneration")).to be >= 0
       end
 
-      it 'regenerates feed when sign in is older than two weeks', :inline_jobs do
+      it 'regenerates feed when sign in is older than two weeks' do
         get :show
 
         expect_updated_sign_in_at(user)

@@ -97,6 +97,8 @@ RSpec.describe 'credentials API' do
     end
 
     it 'returns http success with updated JSON attributes' do
+      Sidekiq.testing!(:fake)
+
       subject
 
       expect(response)

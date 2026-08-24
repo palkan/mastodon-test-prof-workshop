@@ -46,6 +46,8 @@ RSpec.describe ActivityPub::ProcessStatusUpdateService do
 
   describe '#call' do
     it 'updates text and content warning, and schedules re-fetching broken mention' do
+      Sidekiq.testing!(:fake)
+
       subject.call(status, json, json)
       expect(status.reload)
         .to have_attributes(
@@ -284,6 +286,8 @@ RSpec.describe ActivityPub::ProcessStatusUpdateService do
 
     context 'when originally without tagged objects' do
       before do
+        Sidekiq.testing!(:fake)
+
         subject.call(status, json, json)
       end
 
@@ -294,6 +298,8 @@ RSpec.describe ActivityPub::ProcessStatusUpdateService do
 
     context 'when originally without tags' do
       before do
+        Sidekiq.testing!(:fake)
+
         subject.call(status, json, json)
       end
 
@@ -339,6 +345,8 @@ RSpec.describe ActivityPub::ProcessStatusUpdateService do
 
     context 'when originally without mentions' do
       before do
+        Sidekiq.testing!(:fake)
+
         subject.call(status, json, json)
       end
 
@@ -351,6 +359,8 @@ RSpec.describe ActivityPub::ProcessStatusUpdateService do
       let(:mentions) { [[alice, false], [bob, false]] }
 
       before do
+        Sidekiq.testing!(:fake)
+
         subject.call(status, json, json)
       end
 
@@ -363,6 +373,8 @@ RSpec.describe ActivityPub::ProcessStatusUpdateService do
       let(:mentions) { [[alice, true], [bob, true]] }
 
       before do
+        Sidekiq.testing!(:fake)
+
         subject.call(status, json, json)
       end
 
@@ -488,6 +500,8 @@ RSpec.describe ActivityPub::ProcessStatusUpdateService do
       end
 
       it 'removes poll and records media change in edit' do
+        Sidekiq.testing!(:fake)
+
         subject.call(status, json, json)
 
         expect(status.reload.poll).to be_nil
@@ -524,6 +538,8 @@ RSpec.describe ActivityPub::ProcessStatusUpdateService do
     end
 
     it 'creates edit history and sets edit timestamp' do
+      Sidekiq.testing!(:fake)
+
       subject.call(status, json, json)
       expect(status.edits.reload.map(&:text))
         .to eq ['Hello world', 'Hello universe']

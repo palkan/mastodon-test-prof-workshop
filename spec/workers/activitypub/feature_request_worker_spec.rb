@@ -12,6 +12,8 @@ RSpec.describe ActivityPub::FeatureRequestWorker do
 
   describe '#perform' do
     it 'sends the expected `FeatureRequest` activity' do
+      Sidekiq.testing!(:fake)
+
       subject.perform(collection_item.id)
 
       expect(ActivityPub::DeliveryWorker)

@@ -3,6 +3,8 @@
 require 'rails_helper'
 
 RSpec.describe Status::FaspConcern, feature: :fasp do
+  before { Sidekiq.testing!(:fake) }
+
   describe '#create' do
     context 'when account is indexable' do
       let(:account) { Fabricate(:account, domain: 'example.com') }

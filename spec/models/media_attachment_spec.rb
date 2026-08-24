@@ -2,7 +2,7 @@
 
 require 'rails_helper'
 
-RSpec.describe MediaAttachment, :attachment_processing do
+RSpec.describe MediaAttachment do
   describe 'local?' do
     subject { media_attachment.local? }
 
@@ -293,6 +293,8 @@ RSpec.describe MediaAttachment, :attachment_processing do
     end
 
     it 'queues CacheBusterWorker jobs' do
+      Sidekiq.testing!(:fake)
+
       original_url = media.file.url(:original)
       small_url = media.file.url(:small)
 

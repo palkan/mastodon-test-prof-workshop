@@ -10,6 +10,8 @@ RSpec.describe ActivityPub::UpdateDistributionWorker do
 
   describe '#perform' do
     before do
+      Sidekiq.testing!(:fake)
+
       follower.follow!(account)
     end
 

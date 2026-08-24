@@ -8,7 +8,7 @@ RSpec.describe 'Policies' do
   let(:scopes)  { 'read:notifications write:notifications' }
   let(:headers) { { 'Authorization' => "Bearer #{token.token}" } }
 
-  describe 'GET /api/v1/notifications/policy', :inline_jobs do
+  describe 'GET /api/v1/notifications/policy' do
     subject do
       get '/api/v1/notifications/policy', headers: headers, params: params
     end

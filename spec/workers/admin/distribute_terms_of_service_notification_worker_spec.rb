@@ -17,7 +17,7 @@ RSpec.describe Admin::DistributeTermsOfServiceNotificationWorker do
       let!(:user) { Fabricate(:user, confirmed_at: 3.days.ago) }
       let!(:old_user) { Fabricate(:user, confirmed_at: 2.years.ago, current_sign_in_at: 2.years.ago) }
 
-      it 'sends the terms update via email and change the old user to require an interstitial', :inline_jobs do
+      it 'sends the terms update via email and change the old user to require an interstitial' do
         emails = capture_emails { worker.perform(terms.id) }
 
         expect(emails.size)

@@ -32,7 +32,7 @@ RSpec.describe AuthorizeFollowService do
       stub_request(:post, bob.inbox_url).to_return(status: 200)
     end
 
-    it 'removes follow request, creates follow relation, send accept activity', :inline_jobs do
+    it 'removes follow request, creates follow relation, send accept activity' do
       subject.call(bob, sender)
 
       expect(bob)

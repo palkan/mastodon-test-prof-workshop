@@ -17,6 +17,8 @@ RSpec.describe PollExpirationNotifyWorker do
 
     context 'when poll is not expired' do
       it 'requeues job' do
+        Sidekiq.testing!(:fake)
+
         worker.perform(poll.id)
         expect(described_class.sidekiq_options_hash['lock']).to be :until_executing
         expect(described_class).to have_enqueued_sidekiq_job(poll.id).at(poll.expires_at + 5.minutes)
@@ -25,6 +27,8 @@ RSpec.describe PollExpirationNotifyWorker do
 
     context 'when poll is expired' do
       before do
+        Sidekiq.testing!(:fake)
+
         poll_vote
 
         travel_to poll.expires_at + 5.minutes

@@ -12,6 +12,8 @@ RSpec.describe VoteService do
       let(:not_fun_vote) { Fabricate(:poll_vote, poll: poll) }
       let(:voter) { Fabricate(:account, domain: nil) }
 
+      before { Sidekiq.testing!(:fake) }
+
       context 'when the poll was created by a local account' do
         let(:account) { Fabricate(:account, domain: nil) }
 

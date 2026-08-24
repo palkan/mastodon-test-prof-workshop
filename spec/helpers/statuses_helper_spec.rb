@@ -28,7 +28,12 @@ RSpec.describe StatusesHelper do
 
     let(:status) { Fabricate.build :status }
 
-    before { %i(video audio image).each { |type| Fabricate.build :media_attachment, status:, type: } }
+    before do
+      %i(video audio image).each do |type|
+        attachment = Fabricate.build(:media_attachment, status:, type:)
+        attachment.type = type
+      end
+    end
 
     it { is_expected.to eq('Attached: 1 image · 1 video · 1 audio') }
   end

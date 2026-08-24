@@ -147,6 +147,8 @@ RSpec.describe UpdateStatusService do
     end
 
     it 'updates poll, resets votes, saves history, requeues notifications' do
+      Sidekiq.testing!(:fake)
+
       subject.call(status, status.account_id, text: 'Foo', poll: { options: %w(Bar Baz Foo), expires_in: 5.days.to_i })
 
       poll = status.poll.reload
