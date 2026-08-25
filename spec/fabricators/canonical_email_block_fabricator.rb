@@ -2,5 +2,5 @@
 
 Fabricator(:canonical_email_block) do
   email { sequence(:email) { |i| "#{i}#{Faker::Internet.email}" } }
-  reference_account { Fabricate.build(:account) }
+  reference_account(fabricator: :account)
 end

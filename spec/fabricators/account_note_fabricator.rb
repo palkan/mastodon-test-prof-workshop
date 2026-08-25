@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 Fabricator(:account_note) do
-  account { Fabricate.build(:account) }
-  target_account { Fabricate.build(:account) }
+  account
+  target_account(fabricator: :account)
   comment        'User note text'
 end

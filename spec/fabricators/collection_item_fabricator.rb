@@ -1,8 +1,8 @@
 # frozen_string_literal: true
 
 Fabricator(:collection_item) do
-  collection                { Fabricate.build(:collection) }
-  account                   { Fabricate.build(:account) }
+  collection
+  account
   position                  { sequence(:position, 1) }
   state                     :accepted
 end

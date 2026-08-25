@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 Fabricator(:status) do
-  account { Fabricate.build(:account) }
+  account
   text 'Lorem ipsum dolor sit amet'
 
   after_build do |status|

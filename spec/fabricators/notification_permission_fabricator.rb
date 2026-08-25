@@ -2,5 +2,5 @@
 
 Fabricator(:notification_permission) do
   account
-  from_account { Fabricate.build(:account) }
+  from_account(fabricator: :account)
 end

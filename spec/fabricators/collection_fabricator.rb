@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 Fabricator(:collection) do
-  account      { Fabricate.build(:account) }
+  account
   name         { sequence(:name) { |i| "Collection ##{i}" } }
   description  'People to follow'
   local        true
@@ -10,7 +10,7 @@ Fabricator(:collection) do
 end
 
 Fabricator(:remote_collection, from: :collection) do
-  account { Fabricate.build(:remote_account) }
+  account(fabricator: :remote_account)
   local false
   description nil
   description_html '<p>People to follow</p>'

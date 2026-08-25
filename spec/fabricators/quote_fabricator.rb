@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 Fabricator(:quote) do
-  status { Fabricate.build(:status) }
-  quoted_status { Fabricate.build(:status) }
+  status
+  quoted_status(fabricator: :status)
   state :pending
 end
