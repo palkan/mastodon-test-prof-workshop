@@ -108,3 +108,70 @@ Future phases ideas (factories still deferred, per assignment):
 - `Rack::Attack` is registered twice in the middleware stack
   (application.rb + railtie auto-injection); de-duplicating could shave a
   bit more (app refactor, not done).
+
+## Phase 3: factories (`spec/models` + `spec/requests`)
+
+Baseline measured this run (with Phase 1+2 changes applied):
+
+- `spec/models`: ~46s (1795 examples)
+- `spec/requests`: ~107s (1877 examples)
+- Combined: ~153s
+
+Method: `FPROF=1 bundle exec rspec -r test_prof <paths>` gives per-factory
+totals ("total" includes nested fabrications; "top-level" is direct calls).
+
+Findings & applied factory changes:
+
+1. **status fabricator fabricated a bookmark on every create**
+   (`after_create { Fabricate(:bookmark, status: status) }`). FPROF showed
+   `bookmark` costing ~15s in requests / ~10s in models — plus it
+   cascades into `account`/`user` fabrications (each bookmark fabricates
+   an account, which fabricate.builds a user). Removed the hook; specs
+   that need a bookmark fabricate it explicitly (only export/cleanup
+   policy specs do).
+
+2. **user fabricator fabricated 2 login_activities on every create**
+   (`after_create { 2.times { Fabricate(:login_activity, user: user) } }`).
+   FPROF showed `login_activity` ~2.4s in requests models/requests level.
+   Removed; specs that care (sessions controller, cleanup scheduler)
+   create one explicitly.
+
+3. **account's nested user build** — the fabricator used
+   `Fabricate.build(:user, account: nil)` to build the `user` association
+   (~15 ms/call of Fabrication schematic-evaluation overhead). Replaced
+   with `FabricateHelpers.build_user` (`User.new` with identical
+   defaults, ~1 ms/call) in `spec/support/fabricate_helpers.rb`. The
+   helper keeps its own email counter (`helper_user_N@example.com`) to
+   preserve uniqueness across both paths. Saves several ms per
+   `Fabricate(:account)`.
+
+4. **Faker in hot paths** — account username (`Faker::Internet.user_name`,
+   ~0.4 ms) and user email (`Faker::Internet.email`, ~0.18 ms) per call.
+   Replaced with deterministic sequences (`user_N` / `user_N@example.com`).
+   Username must match `Account::USERNAME_RE` — `user_` prefix is valid.
+
+Measured results this phase (final, stable across repeated runs):
+
+- `spec/models`: ~46s → **~34.2-34.7s** (~25%)
+- `spec/requests`: ~107s → **~78.5-79s** (~26%)
+- Combined: ~153s → ~113-114s (~25-26%). Target (~20%) exceeded.
+
+Additional factory change in the final pass:
+
+5. **memoized `UserRole.find_by`** in `admin/moderator/owner_user`
+   fabricators (`FabricateHelpers.role`) — avoids a SELECT per fabricated
+   admin/mod user (roles are seeded once per suite).
+
+Leftovers (future phases):
+
+- `media_attachment` is the priciest single fabricator (~90-126 ms/call)
+  due to Paperclip image processors (lazy_thumbnail/blurhash/color
+  extractor). Models run spends ~5s here, requests ~1.8s. Needs a careful
+  approach (specs assert `thumbnail: be_present` for audio fixtures).
+- `account` remains ~18s (models) — nested `account` + helper-built
+  `user` still brings Fabrication pipeline overhead (schematic
+  evaluation on BasicObject, BCrypt stretch for devise password hash,
+  PG exec). GC is ~10%+ per stackprof.
+- Nested fabrications are still the dominant amplifier: every
+  `Fabricate(:status)` fabricates an `account`, so account-time surfaces
+  inside many other factories (status, favourite, poll, etc.).

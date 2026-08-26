@@ -7,27 +7,23 @@ Fabricator(:user) do
       attrs.fetch(:account_attributes, {}).merge(user: nil)
     )
   end
-  email        { sequence(:email) { |i| "#{i}#{Faker::Internet.email}" } }
+  email        { sequence(:email) { |i| "user_#{i}@example.com" } }
   password     '123456789'
   confirmed_at { Time.zone.now }
   current_sign_in_at { Time.zone.now }
   agreement true
-
-  after_create do |user|
-    2.times { Fabricate(:login_activity, user: user) }
-  end
 end
 
 Fabricator(:admin_user, from: :user) do
-  role UserRole.find_by(name: 'Admin')
+  role FabricateHelpers.role('Admin')
 end
 
 Fabricator(:moderator_user, from: :user) do
-  role UserRole.find_by(name: 'Moderator')
+  role FabricateHelpers.role('Moderator')
 end
 
 Fabricator(:owner_user, from: :user) do
-  role UserRole.find_by(name: 'Owner')
+  role FabricateHelpers.role('Owner')
 end
 
 Fabricator(:private_user, from: :user) do
