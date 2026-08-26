@@ -17,35 +17,8 @@
     <img src="https://d322cqt584bo4o.cloudfront.net/mastodon/localized.svg" alt="Crowdin" /></a>
 </p>
 
-
 > [!IMPORTANT]
 > This is a specific version of the original Mastodon codebase for [Rails AI evals](https://github.com/rails/ai-evals).
-
-This branch contains the following changes compared to the upstream:
-
-- **Docker/Dip setup** enough to run tests (run `dip provision`, then `dip rspec` — all should work)
-- A few commits **spoiling** tests performance a bit. Most of the changes are reversions of the optimizations the Mastodon team shipped over the years.
-
-This branch acts as a starting point for agents working on the test optimization task(s).
-
-## How to use it with miniswen
-
-Before adding a task to a lemans bench suite, we recommend manually verifying it using miniswen:
-
-- Create a new branch (say, `run/<agent-name>-<task>`)
-- Run a Rails Docker container with no outside network access: `dip runner:isolated`. Obtain its ID and make it available to the env:
-
-```sh
-export DOCKER=$(docker ps | grep mastodon-workshop-rails-isolated-run | awk '{ printf $1 }')
-```
-
-- Run miniswen attached to this container (so the agent could only run commands within a sandbox):
-
-```sh
-miniswen -p tasks/my-task/instruction-stripped-1.md --docker $DOCKER --exec-timeout=300 --results-path ./runs/gpt-5.6-luna/my-task/results.1.json --atif-path ./runs/gpt-5.6-luna/my-task/trajectory.1.json
-```
-
-Repeat for every task (or step in the task), analyze the results, tune your prompt, repeat for a few agents, and so on.
 
 ---
 
