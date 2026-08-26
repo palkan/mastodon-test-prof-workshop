@@ -131,10 +131,10 @@ RSpec.configure do |config|
   config.after do |example|
     Rails.cache.clear
 
-    # Model specs only use the dedicated test Redis database. FLUSHDB avoids
-    # fetching every key just to delete it, which is particularly expensive
-    # across the large model suite. Keep the existing cleanup for other specs.
-    if example.metadata[:type] == :model
+    # Specs use the dedicated test Redis database. FLUSHDB avoids fetching every
+    # key just to delete it, which is particularly expensive across the large
+    # model and request suites.
+    if %i[model request].include?(example.metadata[:type])
       redis.flushdb
     else
       redis.del(redis.keys)
