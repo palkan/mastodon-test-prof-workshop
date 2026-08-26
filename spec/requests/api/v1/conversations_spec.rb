@@ -2,7 +2,7 @@
 
 require 'rails_helper'
 
-RSpec.describe 'API V1 Conversations' do
+RSpec.describe 'API V1 Conversations', :inline_jobs do
   include_context 'with API authentication', oauth_scopes: 'read:statuses'
 
   let!(:user) { Fabricate(:user, account_attributes: { username: 'alice' }) }

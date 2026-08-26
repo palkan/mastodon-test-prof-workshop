@@ -105,12 +105,13 @@ RSpec.configure do |config|
     self.use_transactional_tests = true
   end
 
-  # Model specs typically assert on records and enqueued jobs, not worker
-  # side-effects. Running Sidekiq inline makes every Account/Status/User
-  # fabricate serialize webhooks and run other after_commit workers.
-  # Keep inline as the default for other spec types (requests, services, …).
+  # Model and request specs typically assert on records, HTTP responses, and
+  # enqueued jobs — not worker side-effects. Inline mode makes every
+  # Account/Status/User fabricate serialize webhooks and run distribution /
+  # ActivityPub workers. Tag examples that need side-effects with :inline_jobs.
+  # Other spec types (services, workers, …) stay on inline.
   config.before do |example|
-    if example.metadata[:type] == :model && !example.metadata[:inline_jobs]
+    if %i(model request).include?(example.metadata[:type]) && !example.metadata[:inline_jobs]
       Sidekiq.testing!(:fake)
     else
       Sidekiq.testing!(:inline)

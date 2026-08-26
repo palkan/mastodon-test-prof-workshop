@@ -3,6 +3,13 @@
 require 'rails_helper'
 
 RSpec.describe Rack::Attack, type: :request do
+  around do |example|
+    was_enabled = Rack::Attack.enabled
+    Rack::Attack.enabled = true
+    example.run
+    Rack::Attack.enabled = was_enabled
+  end
+
   def app
     Rails.application
   end

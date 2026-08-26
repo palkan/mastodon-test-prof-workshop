@@ -2,10 +2,13 @@
 
 class WebhookService < BaseService
   def call(event, object)
-    @event  = Webhooks::EventPresenter.new(event, object)
-    @body   = serialize_event
+    @event = Webhooks::EventPresenter.new(event, object)
+    webhook_ids = webhooks_for_event
+    return if webhook_ids.empty?
 
-    webhooks_for_event.each do |webhook_id|
+    @body = serialize_event
+
+    webhook_ids.each do |webhook_id|
       Webhooks::DeliveryWorker.perform_async(webhook_id, @body)
     end
   end

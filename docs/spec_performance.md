@@ -60,6 +60,55 @@ Shared cost (not example-specific):
 
 After (same seed, including `:inline_jobs` tags): **97.17s**, 1795 examples, 0 failures (≈35% faster than 148.9s).
 
+## `spec/requests` baseline (before this phase)
+
+- Command: `bundle exec rspec spec/requests --profile 25 --seed 1234`
+- 1877 examples (ignore system/streaming/search/js).
+- Representative slice `spec/requests/api/v1` (916 examples, same seed): **59.23s**.
+- Hottest request-specific costs (not individual example logic):
+
+1. **Debug logging** — `Rails.logger` level 0 (`debug`). One `api/v1` run wrote
+   ~9MB / 28k lines of SQL + `Rails.cache` + Rack::Attack traces to
+   `log/test.log`. Shared I/O on every request.
+2. **Sidekiq inline** — same webhook/AP/distribution tax as models. Most request
+   examples only assert HTTP status / JSON / `have_enqueued_sidekiq_job`. A
+   minority need workers to actually run:
+   - Home feed is Redis-only (`DistributionWorker` / `FanOutOnWriteService`).
+   - Notifications / conversations / favourites use `LocalNotificationWorker`.
+   - `capture_emails` needs `deliver_later` to run (ActiveJob → Sidekiq).
+3. **`WebhookService` serializes even when no webhooks exist** — still paid by
+   remaining `:inline_jobs` request examples (and any other inline spec type).
+4. **Rack::Attack + HttpLog** — every request hits a dozen throttle cache
+   keys; HttpLog wraps Net::HTTP in test because `Rails.env.local?` is true.
+5. **`cache_spec.rb`** — 258 examples, each re-fabricating alice/user/statuses/
+   poll/invite/token + follow (~19s after the other cuts, ~21s in a mixed run).
+
+## `spec/requests` changes in this phase
+
+- Test log level defaults to `fatal` (`RAILS_LOG_LEVEL` overrides).
+- HttpLog is not loaded in test.
+- `Rack::Attack.enabled = false` in test; `spec/config/initializers/rack/attack_spec.rb`
+  re-enables it around its examples.
+- Request examples use Sidekiq **fake** unless tagged `:inline_jobs`.
+  Tagged files (worker side-effects or mail):
+  - `spec/requests/api/v1/timelines/home_spec.rb`
+  - `spec/requests/api/v1/notifications_spec.rb`
+  - `spec/requests/api/v2/notifications_spec.rb`
+  - `spec/requests/api/v2/notifications/accounts_spec.rb`
+  - `spec/requests/api/v1/conversations_spec.rb`
+  - `spec/requests/api/v1/statuses/favourites_spec.rb`
+  - `spec/requests/api/v1/reports_spec.rb`
+  - `spec/requests/api/v1/admin/account_actions_spec.rb`
+  - `spec/requests/admin/confirmations_spec.rb`
+- `WebhookService` returns before AMS serialization when no webhook matches.
+- `cache_spec.rb` builds the shared graph once via test-prof `before_all`
+  (examples unchanged). 258 examples: **18.75s → 4.56s**.
+
+After (same seed):
+
+- `spec/requests/api/v1`: **39.06s** / 916 examples / 0 failures (≈34% vs 59.23s).
+- `spec/requests`: **83.81s** / 1877 examples / 0 failures.
+
 ## Future phases
 
 ### Factories
@@ -68,14 +117,19 @@ After (same seed, including `:inline_jobs` tags): **97.17s**, 1795 examples, 0 f
   are the next large shared cost. Consider traits / optional associations.
 - `let_it_be` / `before_all` (test-prof) would help
   `account_statuses_cleanup_policy_spec` and `trends/statuses_spec` which rebuild
-  large graphs per example. That changes setup, so keep it for a later pass.
+  large graphs per example. Request `cache_spec` already uses `before_all`.
+- `include_context 'with API authentication'` fabricates user+token per example;
+  many API files override `scopes`/`token`, so do not blindly switch that
+  context to `let_it_be`.
 
-### `spec/requests`
+### Later spec types (controllers, services, workers)
 
-- Still uses Sidekiq inline by default. Profile before changing; many request
-  specs likely depend on worker side-effects (timelines, emails, ActivityPub).
-- Same Redis/cache after-hook already benefits them.
-- Watch Devise `reload_routes_unless_loaded` (needed for request/controller).
+- Still on Sidekiq inline by default. Same webhook early-return now helps them.
+- Devise `reload_routes_unless_loaded` stays per-example (lazy routes + Devise
+  https://github.com/heartcombo/devise/issues/5705). Cheap after first load.
+- Remaining request hotspots: ActivityPub replies/contexts, signature
+  verification (RSA + `reload_routes!` after each example), HTML settings/admin
+  pages, Paperclip media endpoints.
 
 ### Media / Paperclip
 

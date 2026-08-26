@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require 'rails_helper'
+require 'test_prof/recipes/rspec/before_all'
 
 module TestEndpoints
   # Endpoints that do not include authorization-dependent results
@@ -171,7 +172,9 @@ RSpec.describe 'Caching behavior' do
   let(:user) { User.find_by(email: 'user@host.example') }
   let(:token) { Doorkeeper::AccessToken.find_by(resource_owner_id: user.id) }
 
-  before do
+  # Shared records are identical across the 250+ cache-header examples; building
+  # them once avoids repeating user/status/token fabrication per example.
+  before_all do
     alice = Fabricate(:account, username: 'alice')
     user = Fabricate(:moderator_user, email: 'user@host.example')
     status = Fabricate(:status, account: alice, id: 110_224_538_612_341_312)

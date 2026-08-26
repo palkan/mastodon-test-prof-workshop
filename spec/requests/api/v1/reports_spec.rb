@@ -2,7 +2,7 @@
 
 require 'rails_helper'
 
-RSpec.describe 'Reports' do
+RSpec.describe 'Reports', :inline_jobs do
   include_context 'with API authentication', oauth_scopes: 'write:reports'
 
   describe 'POST /api/v1/reports' do

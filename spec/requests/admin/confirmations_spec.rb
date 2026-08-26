@@ -2,7 +2,7 @@
 
 require 'rails_helper'
 
-RSpec.describe 'Admin Confirmations' do
+RSpec.describe 'Admin Confirmations', :inline_jobs do
   before { sign_in Fabricate(:admin_user) }
 
   describe 'POST /admin/accounts/:account_id/confirmation' do

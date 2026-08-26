@@ -24,6 +24,10 @@ Rails.application.configure do
   config.action_controller.perform_caching = false
   config.cache_store = :memory_store
 
+  # Request specs write a huge debug log (SQL + cache + HTTP). That I/O is a
+  # shared cost across every example; keep a fatal logger unless overridden.
+  config.log_level = ENV.fetch('RAILS_LOG_LEVEL', 'fatal')
+
   # Render exception templates for rescuable exceptions and raise for other exceptions.
   config.action_dispatch.show_exceptions = :rescuable
 
@@ -95,3 +99,7 @@ Redis.raise_deprecations = true
 
 # Silence deprecation warning from json-schema
 JSON::Validator.use_multi_json = false
+
+# Throttle/blocklist checks hit the cache on every request. Specs that cover
+# Rack::Attack re-enable it (see spec/config/initializers/rack/attack_spec.rb).
+Rack::Attack.enabled = false

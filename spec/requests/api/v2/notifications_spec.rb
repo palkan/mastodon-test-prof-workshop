@@ -2,7 +2,7 @@
 
 require 'rails_helper'
 
-RSpec.describe 'Notifications' do
+RSpec.describe 'Notifications', :inline_jobs do
   include_context 'with API authentication', oauth_scopes: 'read:notifications write:notifications'
 
   let(:user)    { Fabricate(:user, account_attributes: { username: 'alice' }) }
