@@ -501,7 +501,7 @@ RSpec.describe User do
     context 'when user is new' do
       let(:confirmed_at) { nil }
 
-      it 'confirms user and delivers welcome email' do
+      it 'confirms user and delivers welcome email', :inline_jobs do
         emails = capture_emails { subject }
 
         expect(user.confirmed_at).to be_present

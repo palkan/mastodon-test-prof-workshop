@@ -87,7 +87,7 @@ RSpec.describe Admin::AccountAction do
       end
     end
 
-    it 'sends email to target account user' do
+    it 'sends email to target account user', :inline_jobs do
       emails = capture_emails { subject }
 
       expect(emails).to contain_exactly(

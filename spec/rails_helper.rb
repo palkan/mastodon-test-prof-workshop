@@ -105,8 +105,16 @@ RSpec.configure do |config|
     self.use_transactional_tests = true
   end
 
-  config.before do
-    Sidekiq.testing!(:inline)
+  # Model specs typically assert on records and enqueued jobs, not worker
+  # side-effects. Running Sidekiq inline makes every Account/Status/User
+  # fabricate serialize webhooks and run other after_commit workers.
+  # Keep inline as the default for other spec types (requests, services, …).
+  config.before do |example|
+    if example.metadata[:type] == :model && !example.metadata[:inline_jobs]
+      Sidekiq.testing!(:fake)
+    else
+      Sidekiq.testing!(:inline)
+    end
   end
 
   config.before :each, type: :cli do
@@ -130,7 +138,8 @@ RSpec.configure do |config|
 
   config.after do
     Rails.cache.clear
-    redis.del(redis.keys)
+    # FLUSHDB is equivalent to deleting every key and avoids the extra KEYS scan
+    redis.flushdb
   end
 
   # Assign types based on dir name for non-inferred types
