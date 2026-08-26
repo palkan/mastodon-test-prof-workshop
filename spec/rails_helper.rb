@@ -106,7 +106,7 @@ RSpec.configure do |config|
   end
 
   config.before do
-    Sidekiq.testing!(:inline)
+    Sidekiq.testing!(:inline) unless Sidekiq::Testing.inline?
   end
 
   config.before :each, type: :cli do
@@ -128,9 +128,17 @@ RSpec.configure do |config|
     host! 'localhost:3000'
   end
 
-  config.after do
+  config.after do |example|
     Rails.cache.clear
-    redis.del(redis.keys)
+
+    # Model specs only use the dedicated test Redis database. FLUSHDB avoids
+    # fetching every key just to delete it, which is particularly expensive
+    # across the large model suite. Keep the existing cleanup for other specs.
+    if example.metadata[:type] == :model
+      redis.flushdb
+    else
+      redis.del(redis.keys)
+    end
   end
 
   # Assign types based on dir name for non-inferred types
