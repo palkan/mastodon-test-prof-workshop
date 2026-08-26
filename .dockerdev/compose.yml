@@ -64,6 +64,7 @@ services:
       service: rails
     volumes:
       - gitstub:/app/.git
+      - gitstub:/app/rails-eval
     networks: [ isolated ]
 
   postgres:
