@@ -502,7 +502,7 @@ RSpec.describe User do
       let(:confirmed_at) { nil }
 
       it 'confirms user and delivers welcome email' do
-        emails = capture_emails { subject }
+        emails = Sidekiq::Testing.inline! { capture_emails { subject } }
 
         expect(user.confirmed_at).to be_present
         expect(emails.size)

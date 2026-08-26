@@ -57,6 +57,9 @@ Rails.application.configure do
   # Raise exceptions when a reorder occurs in in_batches
   config.active_record.error_on_ignored_order = true
 
+  # Keep the log level at :warn to avoid expensive debug/SQL logging during test runs
+  config.log_level = :warn
+
   # Raise exceptions for disallowed deprecations.
   config.active_support.disallowed_deprecation = :raise
 

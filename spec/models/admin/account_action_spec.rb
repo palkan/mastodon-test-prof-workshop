@@ -88,7 +88,7 @@ RSpec.describe Admin::AccountAction do
     end
 
     it 'sends email to target account user' do
-      emails = capture_emails { subject }
+      emails = Sidekiq::Testing.inline! { capture_emails { subject } }
 
       expect(emails).to contain_exactly(
         have_attributes(

@@ -28,7 +28,7 @@ RSpec.describe EmailSubscription do
     subject { Fabricate(:email_subscription) }
 
     it 'generates token and delivers confirmation email' do
-      emails = capture_emails { subject }
+      emails = Sidekiq::Testing.inline! { capture_emails { subject } }
 
       expect(subject.confirmed_at).to be_nil
       expect(subject.confirmation_token).to_not be_nil

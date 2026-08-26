@@ -109,6 +109,13 @@ RSpec.configure do |config|
     Sidekiq.testing!(:inline)
   end
 
+  # Run model specs with faked sidekiq queues to avoid expensive inline job
+  # execution in common callbacks. Examples that depend on jobs being
+  # processed should wrap the trigger in `Sidekiq::Testing.inline! { ... }`.
+  config.before :each, type: :model do
+    Sidekiq.testing!(:fake)
+  end
+
   config.before :each, type: :cli do
     stub_reset_connection_pools
   end
