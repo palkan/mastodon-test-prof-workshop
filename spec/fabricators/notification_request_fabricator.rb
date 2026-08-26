@@ -2,6 +2,6 @@
 
 Fabricator(:notification_request) do
   account
-  from_account(fabricator: :account)
-  last_status(fabricator: :status)
+  from_account { |attrs| attrs[:last_status]&.account || Fabricate(:account) }
+  last_status { |attrs| Fabricate(:status, account: attrs[:from_account]) }
 end

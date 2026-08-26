@@ -12,10 +12,6 @@ Fabricator(:user) do
   confirmed_at { Time.zone.now }
   current_sign_in_at { Time.zone.now }
   agreement true
-
-  after_create do |user|
-    2.times { Fabricate(:login_activity, user: user) }
-  end
 end
 
 Fabricator(:admin_user, from: :user) do

@@ -9,7 +9,7 @@ documentation.
 - Ignore system specs and streaming/search/js-tagged specs (excluded by default).
 - Do **not** run the whole suite in this environment; it will time out.
 - Profile one spec type at a time: `spec/models`, then `spec/requests`, …
-- Leave factories alone until that dedicated phase.
+- Factory definitions live in `spec/fabricators` (Fabrication, not FactoryBot).
 - Use a fixed seed for comparable timings:
 
 ```sh
@@ -109,18 +109,66 @@ After (same seed):
 - `spec/requests/api/v1`: **39.06s** / 916 examples / 0 failures (≈34% vs 59.23s).
 - `spec/requests`: **83.81s** / 1877 examples / 0 failures.
 
+## Factory phase (`spec/models` + `spec/requests`)
+
+Hot fabricators were creating extra records that almost no example used.
+
+### What was expensive
+
+1. **`Fabricator(:status)` `after_create` bookmark** — every status inserted a
+   `Bookmark` whose `account` was a *new* local account (plus its nested `User`).
+   Status-heavy groups (`PublicFeed`, `TagFeed`, `Status`, cleanup policy, trends)
+   paid for ~2x accounts/users. The extra bookmark was on a different account, so
+   it did not affect `bookmarked?` / API `bookmarked` for the author or viewer.
+   Specs that need bookmarks already `Fabricate(:bookmark, ...)`.
+2. **`Fabricator(:user)` `after_create` two `login_activity` rows** — only ran on
+   `Fabricate(:user)` (not nested `Fabricate.build(:user)` from `:account`).
+   Request specs (`with API authentication`) hit this on every example. Login /
+   omniauth examples assert `change(LoginActivity, :count)` and already fabricate
+   activities when they need existing rows.
+3. **Independent `account` + `status` on `:poll` / `:status_trend`** — defaulted
+   to two accounts. `:status_pin` already did `status` from `attrs[:account]`.
+   `:notification_request` `last_status` also created a third account.
+
+Isolated `rails runner` (n=20, before): `Fabricate(:status)` ~32ms, each status
+left a bookmark + extra account/user; `Fabricate(:user)` wrote 2 login activities.
+
+### Changes (fabricators only; examples unchanged)
+
+- Drop status `after_create` bookmark and user `after_create` login activities.
+- `:poll` / `:status_trend`: reuse `status.account` (overrides still win, so
+  `Fabricate(:status_trend, status:, account: other)` stays valid).
+- `:notification_request`: `last_status` belongs to `from_account`.
+
+Do **not** add unused `:with_bookmark` / `:with_login_activities` fabricators —
+`spec/fabrication/fabricators_spec.rb` instantiates every schematic twice.
+
+### Measurement (same seed 1234)
+
+Hot model slice (`status`, `public_feed`, `account_statuses_cleanup_policy`,
+`tag_feed`, `trends/statuses`, `notification`, `account`): **20.23s → 11.15s**
+/ 333 examples / 0 failures (**≈45%**). Broader models+requests samples covering
+bookmarks, polls, trends, notification requests, omniauth, cache, timelines,
+API statuses: 0 failures.
+
+Expect ≥20% on full `spec/models` + `spec/requests` from fewer inserts alone.
+
 ## Future phases
 
-### Factories
+### Still factory-adjacent
 
-- Status fabricator `after_create` bookmark and user `login_activity` records
-  are the next large shared cost. Consider traits / optional associations.
 - `let_it_be` / `before_all` (test-prof) would help
   `account_statuses_cleanup_policy_spec` and `trends/statuses_spec` which rebuild
   large graphs per example. Request `cache_spec` already uses `before_all`.
 - `include_context 'with API authentication'` fabricates user+token per example;
   many API files override `scopes`/`token`, so do not blindly switch that
   context to `let_it_be`.
+- Faker in `:account` username / `:user` email is ~0.4ms per call; sequences
+  would be cheaper but were left alone to avoid incidental example churn.
+- `:preview_card` always attaches `attachment.jpg` (Paperclip). Do not drop it
+  globally — other spec types assert on the image.
+- `:web_push_subscription` generates an EC key and `WebPushKeyValidator`
+  encrypts on every create. Low volume in models/requests.
 
 ### Later spec types (controllers, services, workers)
 
