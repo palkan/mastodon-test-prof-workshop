@@ -4,7 +4,7 @@ require_relative '../support/signing_keys_helpers'
 
 Fabricator(:account) do
   transient :suspended, :silenced, :legacy_keypair, :requested_deletion
-  username              { sequence(:username) { |i| "#{Faker::Internet.user_name(separators: %w(_))}#{i}" } }
+  username              { sequence(:username) { |i| "username#{i}" } }
   last_webfingered_at   { Time.now.utc }
   public_key            { |attrs| attrs[:legacy_keypair] ? SigningKeysHelpers::PUBLIC_RSA_TEST_KEY : '' }
   private_key           { |attrs| attrs[:legacy_keypair] && attrs[:domain].nil? ? SigningKeysHelpers::PRIVATE_RSA_TEST_KEY : nil }
