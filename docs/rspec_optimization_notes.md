@@ -58,3 +58,53 @@ Future phases ideas:
 - `spec/requests` phase: the same log-level fix benefits requests; scoped fake
   mode for `type: :request` may also be a candidate after auditing examples
   (several request specs rely on inline delivery).
+
+## Phase 2: `spec/requests`
+
+Baseline measurement in this container (with Phase 1 changes applied):
+~145s wall, 1877 examples, 0 failures (run with `--format progress`, no
+system/streaming/search/js - default filters).
+
+Instrumentation used:
+
+- `test-prof` EventProf (`sql.active_record`): ~16% of wall — DB latency is
+  not the bottleneck.
+- `stackprof` (wall): PG exec ~15%, GC ~6-7%, BCrypt ~4% (user fabrication),
+  rest spread over ActiveRecord/ActiveSupport internals — i.e., fabrication
+  + Rails overhead, no single smoking gun. Global per-example hooks
+  (Resolv stub, routes reload, `Rails.cache.clear`, `redis.del(redis.keys)`)
+  measured negligible (~5ms/150 iterations in rails console).
+
+Applied changes (Phase 2):
+
+1. **Sidekiq fake mode for `type: :request`** (the big one, ~26-28%):
+   `spec/rails_helper.rb` now sets `Sidekiq.testing!(:fake)` for request
+   examples, like Phase 1 did for model examples. New `around` hook
+   `sidekiq: :inline` runs tagged examples with inline job execution.
+   Failing examples (~41 across the suite) that rely on job side effects
+   (notification creation via `LocalNotificationWorker`, home timeline
+   fan-out, report mailers, unfavourite worker, conversation records) were
+   tagged. Whole-file tags used for notifications/timelines/admin-action
+   specs; example-level tags for conversations/reports/favourites.
+   Full run: 145s → ~104-107s, 0 failures.
+
+2. **Tag narrowing** for conversations/reports/favourites so only the
+   failing examples run inline (rest stay fake): ~3s saved.
+
+Result: ~145s → ~104s (28-29%); ~40% was achieved mid-check before the
+tagged-inline groups were restored for correctness.
+
+Future phases ideas (factories still deferred, per assignment):
+
+- Fabrication dominates: stackprof shows PG exec (~15%), BCrypt (~4%,
+  Devise password digest during user fabrication), GC (~7%). Biggest
+  next lever is factory caching/`FactoryHelpers` (test-prof) or trimming
+  `account`/`user` fabricators.
+- Even after fake-mode, inline-tagged groups (notifications v1/v2,
+  timelines/home, admin account actions) are the slowest (~2-3s per
+  group); consider moving notification creation off workers (app change)
+  or reducing example setup.
+- GC tuning (RUBY_GC_* env) ~5-7% — needs pre-boot env, not done.
+- `Rack::Attack` is registered twice in the middleware stack
+  (application.rb + railtie auto-injection); de-duplicating could shave a
+  bit more (app refactor, not done).

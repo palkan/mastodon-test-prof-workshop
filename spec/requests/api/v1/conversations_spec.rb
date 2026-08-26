@@ -16,7 +16,7 @@ RSpec.describe 'API V1 Conversations' do
       PostStatusService.new.call(user.account, text: 'Hey, nobody here', visibility: 'direct')
     end
 
-    it 'returns pagination headers', :aggregate_failures do
+    it 'returns pagination headers', :aggregate_failures, sidekiq: :inline do
       get '/api/v1/conversations', params: { limit: 1 }, headers: headers
 
       expect(response)
@@ -29,7 +29,7 @@ RSpec.describe 'API V1 Conversations' do
         .to start_with('application/json')
     end
 
-    it 'returns conversations', :aggregate_failures do
+    it 'returns conversations', :aggregate_failures, sidekiq: :inline do
       get '/api/v1/conversations', headers: headers
 
       expect(response.parsed_body.size).to eq 2
@@ -38,7 +38,7 @@ RSpec.describe 'API V1 Conversations' do
 
     context 'with since_id' do
       context 'when requesting old posts' do
-        it 'returns conversations' do
+        it 'returns conversations', sidekiq: :inline do
           get '/api/v1/conversations', params: { since_id: Mastodon::Snowflake.id_at(1.hour.ago, with_random: false) }, headers: headers
 
           expect(response.parsed_body.size).to eq 2

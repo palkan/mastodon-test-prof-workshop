@@ -32,7 +32,7 @@ RSpec.describe 'Reports' do
 
     it_behaves_like 'forbidden for wrong scope', 'read read:reports'
 
-    it 'creates a report', :aggregate_failures do
+    it 'creates a report', :aggregate_failures, sidekiq: :inline do
       emails = capture_emails { subject }
 
       expect(response).to have_http_status(200)

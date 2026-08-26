@@ -109,10 +109,21 @@ RSpec.configure do |config|
     Sidekiq.testing!(:inline)
   end
 
+  # Run the example with jobs executed inline when the example (or its group)
+  # is tagged with `sidekiq: :inline`. Useful for request specs that rely on
+  # job side effects (notification creation, feed fan-out, mailers, ...).
+  config.around(:each, sidekiq: :inline) do |example|
+    Sidekiq::Testing.inline! { example.run }
+  end
+
   # Run model specs with faked sidekiq queues to avoid expensive inline job
   # execution in common callbacks. Examples that depend on jobs being
   # processed should wrap the trigger in `Sidekiq::Testing.inline! { ... }`.
   config.before :each, type: :model do
+    Sidekiq.testing!(:fake)
+  end
+
+  config.before :each, type: :request do
     Sidekiq.testing!(:fake)
   end
 
