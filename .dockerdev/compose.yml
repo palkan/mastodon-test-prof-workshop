@@ -59,6 +59,13 @@ services:
     <<: *backend
     command: bundle exec rails
 
+  rails-isolated:
+    extends:
+      service: rails
+    volumes:
+      - gitstub:/app/.git
+    networks: [ isolated ]
+
   postgres:
     image: postgres:14-alpine
     volumes:
@@ -76,6 +83,7 @@ services:
     healthcheck:
       test: pg_isready -U postgres -h 127.0.0.1
       interval: 5s
+    networks: [ default, isolated ]
 
   redis:
     image: redis:7-alpine
@@ -88,6 +96,11 @@ services:
       interval: 1s
       timeout: 3s
       retries: 30
+    networks: [ default, isolated ]
+
+networks:
+  isolated:
+    internal: true
 
 volumes:
   node_modules:
@@ -97,3 +110,4 @@ volumes:
   postgres:
   redis:
   storage:
+  gitstub:

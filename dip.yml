@@ -18,6 +18,11 @@ interaction:
     service: rails
     command: /bin/bash
 
+  'runner:isolated':
+    description: Open a Bash shell within a Rails container with no outside network access
+    service: rails-isolated
+    command: /bin/bash
+
   # Run a Rails container without any dependent services (useful for non-Rails scripts)
   bash:
     description: Run an arbitrary script within a container (or open a shell without deps)
