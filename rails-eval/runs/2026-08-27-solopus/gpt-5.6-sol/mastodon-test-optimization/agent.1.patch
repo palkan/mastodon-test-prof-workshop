@@ -1,0 +1,131 @@
+diff --git a/docs/model-spec-performance.md b/docs/model-spec-performance.md
+new file mode 100644
+index 0000000000..0b6ae81ff2
+--- /dev/null
++++ b/docs/model-spec-performance.md
+@@ -0,0 +1,39 @@
++# Model spec performance
++
++## Reproducing the benchmark
++
++Use `script/benchmark_model_specs` with one or more paths under `spec/models`.
++It fixes the default seed at `12345`, enables RSpec's slow-example profile, and
++refuses paths outside model specs. For example:
++
++```sh
++script/benchmark_model_specs \
++  spec/models/account_spec.rb \
++  spec/models/status_spec.rb \
++  spec/models/user_spec.rb
++
++script/benchmark_model_specs spec/models/concerns
++```
++
++Override `RSPEC_SEED` or `RSPEC_PROFILE_EXAMPLES` when needed.
++
++## August 2026 baseline and result
++
++Measurements below are RSpec execution time (excluding Rails boot), collected
++sequentially with seed `12345`. Factories were intentionally left unchanged.
++
++| Sample | Examples | All jobs inline | Model jobs fake by default | Change |
++| --- | ---: | ---: | ---: | ---: |
++| Core (`account`, `status`, `user`) | 256 | 11.13s | 7.10s | -36.2% |
++| Model concerns | 219 | 17.73s | 13.60s | -23.3% |
++| Combined | 475 | 28.86s | 20.70s | -28.3% |
++
++The common issue was the global RSpec hook forcing Sidekiq inline for every
++example. Model callbacks enqueue many jobs, so ordinary persistence setup also
++ran unrelated application work. Model specs now use Sidekiq's fake test mode by
++default. Specs that intentionally assert a downstream job side effect use the
++`:inline_jobs` metadata; other spec types retain the previous inline behavior.
++
++Validation was performed in bounded chunks over all files below `spec/models`,
++including each nested directory separately. System, streaming, request, and
++factory specs were not changed or included.
+diff --git a/script/benchmark_model_specs b/script/benchmark_model_specs
+new file mode 100755
+index 0000000000..18ce8b39fb
+--- /dev/null
++++ b/script/benchmark_model_specs
+@@ -0,0 +1,21 @@
++#!/bin/sh
++# Reproducible, model-only benchmark. Pass one or more paths below spec/models.
++# Deliberately refuses other spec types and defaults to a small representative set.
++set -eu
++
++if [ "$#" -eq 0 ]; then
++  set -- \
++    spec/models/account_spec.rb \
++    spec/models/status_spec.rb \
++    spec/models/user_spec.rb
++fi
++
++for path do
++  case "$path" in
++    spec/models|spec/models/*) ;;
++    *) echo "Refusing non-model spec path: $path" >&2; exit 2 ;;
++  esac
++done
++
++export RAILS_ENV=test
++exec bundle exec rspec --seed "${RSPEC_SEED:-12345}" --profile "${RSPEC_PROFILE_EXAMPLES:-10}" "$@"
+diff --git a/spec/models/admin/account_action_spec.rb b/spec/models/admin/account_action_spec.rb
+index 5339084ec4..742a2f9249 100644
+--- a/spec/models/admin/account_action_spec.rb
++++ b/spec/models/admin/account_action_spec.rb
+@@ -87,7 +87,7 @@ RSpec.describe Admin::AccountAction do
+       end
+     end
+ 
+-    it 'sends email to target account user' do
++    it 'sends email to target account user', :inline_jobs do
+       emails = capture_emails { subject }
+ 
+       expect(emails).to contain_exactly(
+diff --git a/spec/models/email_subscription_spec.rb b/spec/models/email_subscription_spec.rb
+index 3730b5c8a4..bcf22d58e6 100644
+--- a/spec/models/email_subscription_spec.rb
++++ b/spec/models/email_subscription_spec.rb
+@@ -24,7 +24,7 @@ RSpec.describe EmailSubscription do
+     end
+   end
+ 
+-  describe 'Callbacks' do
++  describe 'Callbacks', :inline_jobs do
+     subject { Fabricate(:email_subscription) }
+ 
+     it 'generates token and delivers confirmation email' do
+diff --git a/spec/models/user_spec.rb b/spec/models/user_spec.rb
+index 3a1964b698..0ec682f54e 100644
+--- a/spec/models/user_spec.rb
++++ b/spec/models/user_spec.rb
+@@ -493,7 +493,7 @@ RSpec.describe User do
+     end
+   end
+ 
+-  describe '#mark_email_as_confirmed!' do
++  describe '#mark_email_as_confirmed!', :inline_jobs do
+     subject { user.mark_email_as_confirmed! }
+ 
+     let!(:user) { Fabricate(:user, confirmed_at: confirmed_at) }
+diff --git a/spec/rails_helper.rb b/spec/rails_helper.rb
+index dc330809a1..eb261a61cc 100644
+--- a/spec/rails_helper.rb
++++ b/spec/rails_helper.rb
+@@ -105,8 +105,13 @@ RSpec.configure do |config|
+     self.use_transactional_tests = true
+   end
+ 
+-  config.before do
+-    Sidekiq.testing!(:inline)
++  config.before do |example|
++    # Most model specs exercise persistence and callbacks, not the jobs those
++    # callbacks enqueue. Running every job inline makes routine model setup do
++    # unrelated application work. Keep the existing behavior for other spec
++    # types and let the exceptional model spec opt back in with `:inline_jobs`.
++    sidekiq_mode = example.metadata[:type] == :model && !example.metadata[:inline_jobs] ? :fake : :inline
++    Sidekiq.testing!(sidekiq_mode)
+   end
+ 
+   config.before :each, type: :cli do

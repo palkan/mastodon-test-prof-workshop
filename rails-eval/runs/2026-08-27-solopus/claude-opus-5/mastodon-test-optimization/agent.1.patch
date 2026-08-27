@@ -1,0 +1,224 @@
+diff --git a/config/environments/test.rb b/config/environments/test.rb
+index 12709d5f0b..e333371979 100644
+--- a/config/environments/test.rb
++++ b/config/environments/test.rb
+@@ -19,6 +19,11 @@ Rails.application.configure do
+   # loading is working properly before deploying your code.
+   config.eager_load = ENV['CI'].present?
+ 
++  # Only log warnings and above by default: verbose (debug) logging makes the
++  # test suite noticeably slower (every SQL query is formatted and written to
++  # disk). Set `RAILS_LOG_LEVEL=debug` when you need the full log.
++  config.log_level = ENV.fetch('RAILS_LOG_LEVEL', 'warn')
++
+   # Show full error reports and disable caching.
+   config.consider_all_requests_local = true
+   config.action_controller.perform_caching = false
+diff --git a/docs/TESTING_PERFORMANCE.md b/docs/TESTING_PERFORMANCE.md
+new file mode 100644
+index 0000000000..40598ec594
+--- /dev/null
++++ b/docs/TESTING_PERFORMANCE.md
+@@ -0,0 +1,133 @@
++# Test suite performance
++
++Notes and metrics from the ongoing effort to bring the (non-parallel) CI RSpec
++run back under control. Each optimization phase focuses on a single spec type.
++
++Everything here has been measured in the dev container (`dip`/docker-compose),
++single process, no parallelization. Absolute numbers are machine dependent, use
++them as relative references only.
++
++## How to profile
++
++`spec/support/profiling.rb` loads [test-prof][] on demand, so any of its
++profilers can be enabled without touching the Gemfile:
++
++```bash
++# Where does the time go: setup (before/let) vs. examples?
++PROFILE=1 RD_PROF=1 bundle exec rspec spec/models
++
++# How much of the time is spent in the DB?
++PROFILE=1 EVENT_PROF=sql.active_record bundle exec rspec spec/models
++
++# Which factories are used the most (and how deep are the cascades)?
++PROFILE=1 FPROF=1 bundle exec rspec spec/models
++```
++
++Plain [stackprof][] on the whole run is what surfaced the biggest problem so
++far (a global config leak, see below). It is not RSpec aware, so it is the best
++tool to spot overhead that is *not* attributable to any particular example:
++
++```bash
++cat > /tmp/prof.rb <<'RUBY'
++require 'stackprof'
++StackProf.start(mode: :wall, interval: 5000, raw: false)
++at_exit do
++  StackProf.stop
++  StackProf.results('/tmp/stackprof.dump')
++end
++RUBY
++
++RUBYOPT="-r/tmp/prof" bundle exec rspec spec/models
++bundle exec stackprof /tmp/stackprof.dump --limit 30
++bundle exec stackprof /tmp/stackprof.dump --method 'ActiveRecord::LogSubscriber#sql'
++```
++
++Useful RSpec built-in: `bundle exec rspec spec/models --profile 40`.
++
++Do not try to run the whole suite in one go while iterating; go directory by
++directory. System specs (`:js`) and streaming specs are excluded by default and
++are not part of these numbers.
++
++## Baselines
++
++| Phase | Scope | Examples | Wall time |
++| --- | --- | --- | --- |
++| Initial baseline | `spec/models` | 1795 | ~130 s (`Finished in 2m8s`) |
++| After phase 1 (config only) | `spec/models` | 1795 | ~55-59 s (`Finished in 55.0s`) — **~57% faster** |
++
++Reference numbers for other directories after phase 1 (they benefit from the
++same configuration changes):
++
++| Scope | Examples | Wall time |
++| --- | --- | --- |
++| `spec/validators spec/policies spec/presenters spec/serializers` | 547 | ~15 s |
++| `spec/workers spec/mailers spec/helpers spec/routing spec/generators spec/config spec/configuration spec/locales spec/fabrication spec/views spec/chewy` | 795 | ~38 s |
++
++## Phase 1 — `spec/models` (configuration only, ~55% faster)
++
++1. **`ActiveRecord.verbose_query_logs = true` leaked from a spec file.**
++   `spec/models/concerns/status/fetch_replies_concern_spec.rb` set it at load
++   time, i.e. it stayed enabled for *every* example of the process, and it made
++   Active Record compute (and clean) a backtrace for each of the ~116k SQL
++   queries of `spec/models`. That single line accounted for **~30%** of the
++   whole `spec/models` runtime (`ActiveRecord::LogSubscriber#sql` had a 34%
++   total share in stackprof, `Thread.each_caller_location` + backtrace cleaning
++   ~30%). Removed. 130 s → 79 s.
++
++   Lesson: global mutations (`ActiveRecord.x =`, `Devise.x =`, …) must never be
++   done at spec load time. Grep for them when times look off:
++   `grep -rnE "^\s*(ActiveRecord|Rails\.application\.config|ActiveSupport|Chewy|Sidekiq|Devise)\.[a-z_]+ *=" spec --include=*_spec.rb`.
++
++2. **Log level in the test environment (`config/environments/test.rb`).**
++   It used to be `:debug`, which produced a ~60 MB `log/test.log` per
++   `spec/models` run: every query was colorized, formatted and written to disk.
++   Rails 8 subscribers declare their log level (`subscribe_log_level`), so a
++   `:warn` level also skips most of the Active Record log subscriber work.
++   `config.log_level = ENV.fetch('RAILS_LOG_LEVEL', 'warn')` — use
++   `RAILS_LOG_LEVEL=debug` when you need the full log. 79 s → 71 s.
++
++3. **YJIT (`spec/spec_helper.rb`).** Enabled at runtime (after boot, so we
++   don't pay for JIT-compiling one-off boot code) with
++   `RubyVM::YJIT.enable`. Opt out with `DISABLE_YJIT=1`. 71 s → 64 s.
++
++4. **bcrypt digests (`spec/support/password_digests.rb`).** Devise already uses
++   the minimum number of stretches in test, but bcrypt's cost is clamped to 4,
++   and the suite hashes the same handful of passwords hundreds of times
++   (`BCrypt::Engine.__bc_crypt` was ~5% of the run). `Devise::Encryptor.digest`
++   is now memoized per `[pepper, stretches, password]`. The memoized value is a
++   regular bcrypt digest, so `valid_password?` and friends are unaffected.
++   64 s → 59 s.
++
++## Where the remaining `spec/models` time goes
++
++- **~78% is setup**, not examples: `RD_PROF` reports `Total setup time:
++  00:45.793` out of `00:58.289`. Almost all of it is factory work in
++  `let!`/`before` blocks.
++- SQL is only ~17% of the wall time (`EVENT_PROF=sql.active_record`: 22 s of
++  132 s before phase 1), but there are **~116k queries for 1795 examples**
++  (~65 queries per example). The most repeated ones come from validations and
++  callbacks triggered by the account/user/status factories:
++  `Keypair Exists?`, `UserRole Load`, `UsernameBlock Exists?`,
++  `Webhook Pluck`, `EmailDomainBlock Exists?`, `Setting Load`.
++- GC is ~5-7%; `Terrapin`/`vips` subprocesses (~6%) are almost entirely
++  `spec/models/media_attachment_spec.rb`.
++
++## Ideas for the next phases
++
++- Factories (explicitly out of scope for phase 1): the `:user` fabricator
++  creates two `login_activity` records for every user, `:account` runs
++  `Faker::Internet.user_name`/`email` per record, and account/user creation
++  triggers a long chain of validation queries. Deduplicating/building instead
++  of creating should cut the ~65 queries per example significantly.
++- `config/initializers/httplog.rb` is active in the test environment
++  (`Rails.env.local?`), patching Net::HTTP & co. Mostly irrelevant for model
++  specs, worth measuring for `spec/requests`.
++- Data reuse (`before_all`/`let_it_be` from test-prof) would attack the ~78%
++  setup share directly, but it changes how specs read, so it needs its own
++  discussion.
++- Nothing in the shared RSpec hooks is hot: 500 trivial examples run in ~0.7 s
++  (~1.3 ms/example including the `Rails.cache.clear` + redis flush `after`
++  hooks and the `Resolv::DNS` stub `before` hook).
++
++[test-prof]: https://test-prof.evilmartians.io/
++[stackprof]: https://github.com/tmm1/stackprof
+diff --git a/spec/models/concerns/status/fetch_replies_concern_spec.rb b/spec/models/concerns/status/fetch_replies_concern_spec.rb
+index e9c81d43b1..b42a6dc354 100644
+--- a/spec/models/concerns/status/fetch_replies_concern_spec.rb
++++ b/spec/models/concerns/status/fetch_replies_concern_spec.rb
+@@ -3,8 +3,6 @@
+ require 'rails_helper'
+ 
+ RSpec.describe Status::FetchRepliesConcern do
+-  ActiveRecord.verbose_query_logs = true
+-
+   let!(:alice)  { Fabricate(:account, username: 'alice') }
+   let!(:bob)    { Fabricate(:account, username: 'bob', domain: 'other.com') }
+ 
+diff --git a/spec/spec_helper.rb b/spec/spec_helper.rb
+index cfbda08d38..dfe14df775 100644
+--- a/spec/spec_helper.rb
++++ b/spec/spec_helper.rb
+@@ -1,5 +1,11 @@
+ # frozen_string_literal: true
+ 
++# Enable YJIT (when available) to speed up the test suite. It's enabled here,
++# after the boot sequence, so we don't waste time compiling one-off boot code.
++# Set `DISABLE_YJIT=1` to opt out.
++yjit_available = defined?(RubyVM::YJIT) && RubyVM::YJIT.respond_to?(:enable) && !RubyVM::YJIT.enabled?
++RubyVM::YJIT.enable if yjit_available && ENV['DISABLE_YJIT'].nil?
++
+ if ENV.fetch('COVERAGE', false)
+   require 'simplecov'
+   SimpleCov.start 'rails'
+diff --git a/spec/support/password_digests.rb b/spec/support/password_digests.rb
+new file mode 100644
+index 0000000000..ad5944c41d
+--- /dev/null
++++ b/spec/support/password_digests.rb
+@@ -0,0 +1,17 @@
++# frozen_string_literal: true
++
++# Hashing passwords with bcrypt is intentionally slow, and the test suite
++# creates a lot of users (all of them sharing the same handful of passwords).
++#
++# Devise already uses the minimum number of stretches in the test environment,
++# so the only remaining optimization is to avoid computing the same digest over
++# and over again: the memoized digest is a regular bcrypt digest, so password
++# verification keeps working exactly the same way.
++module PasswordDigestCache
++  def digest(klass, password)
++    cache = (Thread.current[:password_digest_cache] ||= {})
++    cache[[klass.pepper, klass.stretches, password]] ||= super
++  end
++end
++
++Devise::Encryptor.singleton_class.prepend(PasswordDigestCache)
+diff --git a/spec/support/profiling.rb b/spec/support/profiling.rb
+new file mode 100644
+index 0000000000..563b9cbc3f
+--- /dev/null
++++ b/spec/support/profiling.rb
+@@ -0,0 +1,11 @@
++# frozen_string_literal: true
++
++# Opt-in profiling helpers (see docs/TESTING_PERFORMANCE.md).
++#
++# Enable with `PROFILE=1` and pick a profiler through TestProf's env vars, e.g.:
++#
++#   PROFILE=1 EVENT_PROF=sql.active_record bundle exec rspec spec/models
++#   PROFILE=1 RD_PROF=1 bundle exec rspec spec/models
++#   PROFILE=1 FPROF=1 bundle exec rspec spec/models
++#   PROFILE=1 TEST_STACK_PROF=1 bundle exec rspec spec/models
++require 'test-prof' if ENV['PROFILE']

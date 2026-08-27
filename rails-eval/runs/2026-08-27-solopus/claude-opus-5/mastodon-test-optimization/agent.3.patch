@@ -1,0 +1,347 @@
+diff --git a/docs/TESTING_PERFORMANCE.md b/docs/TESTING_PERFORMANCE.md
+index ce9f5eaedc..80af5ffcd8 100644
+--- a/docs/TESTING_PERFORMANCE.md
++++ b/docs/TESTING_PERFORMANCE.md
+@@ -21,8 +21,15 @@ PROFILE=1 EVENT_PROF=sql.active_record bundle exec rspec spec/models
+ 
+ # Which factories are used the most (and how deep are the cascades)?
+ PROFILE=1 FPROF=1 bundle exec rspec spec/models
++
++# Which Sidekiq workers/mailers run inline, how often and for how long?
++WORKER_PROF=1 bundle exec rspec spec/requests
+ ```
+ 
++`FPROF`'s `total` vs `top-level` columns are the interesting ones: a factory with
++a huge `total` and a tiny `top-level` count is being pulled in by another
++fabricator (a cascade), which is usually where the waste is.
++
+ Plain [stackprof][] on the whole run is what surfaced the biggest problem so
+ far (a global config leak, see below). It is not RSpec aware, so it is the best
+ tool to spot overhead that is *not* attributable to any particular example:
+@@ -71,16 +78,21 @@ are not part of these numbers.
+ | After phase 1 (config only) | `spec/models` | 1795 | ~55-59 s (`Finished in 55.0s`) — **~57% faster** |
+ | Phase 2 baseline | `spec/requests` | 1877 | ~114 s (`Finished in 1m54s`) |
+ | After phase 2 (config only) | `spec/requests` | 1877 | ~77 s (`Finished in 1m17s`) — **~32% faster** |
++| Phase 3 baseline | `spec/models` + `spec/requests` | 3672 | ~117 s (39.5 s + 77.5 s) |
++| After phase 3 (factories) | `spec/models` + `spec/requests` | 3672 | ~87 s (29.4 s + 57.8 s) — **~25% faster** |
+ 
+-Reference numbers for other directories after phase 2 (they benefit from the
+-same configuration changes):
++Reference numbers for the other directories (they benefit from the same changes,
++since fabricators and support files are shared):
+ 
+-| Scope | Examples | Wall time |
+-| --- | --- | --- |
+-| `spec/models` | 1795 | ~40 s (was ~55 s after phase 1) |
+-| `spec/services` | 712 | ~37 s |
+-| `spec/controllers spec/workers spec/lib` | 1975 | ~83 s |
+-| `spec/validators spec/policies spec/presenters spec/serializers spec/mailers spec/helpers spec/routing spec/generators spec/config spec/configuration spec/locales spec/fabrication spec/views spec/chewy spec/search` | 1013 | ~21 s |
++| Scope | Examples | After phase 2 | After phase 3 |
++| --- | --- | --- | --- |
++| `spec/models` | 1795 | ~40 s | ~29 s |
++| `spec/requests` | 1877 | ~77 s | ~58 s |
++| `spec/services` | 712 | ~37 s | ~30 s |
++| `spec/controllers spec/workers` | 662 | — | ~28 s |
++| `spec/lib` | 1313 | — | ~33 s |
++| `spec/controllers spec/workers spec/lib` | 1975 | ~83 s | ~62 s |
++| `spec/validators spec/policies spec/presenters spec/serializers spec/mailers spec/helpers spec/routing spec/generators spec/config spec/configuration spec/locales spec/fabrication spec/views spec/chewy spec/search` | 1013 | ~21 s | ~17 s |
+ 
+ ## Phase 1 — `spec/models` (configuration only, ~55% faster)
+ 
+@@ -117,7 +129,7 @@ same configuration changes):
+    regular bcrypt digest, so `valid_password?` and friends are unaffected.
+    64 s → 59 s.
+ 
+-## Where the remaining `spec/models` time goes
++## Where the remaining `spec/models` time goes (as of phase 1, see phase 3 below)
+ 
+ - **~78% is setup**, not examples: `RD_PROF` reports `Total setup time:
+   00:45.793` out of `00:58.289`. Almost all of it is factory work in
+@@ -190,7 +202,7 @@ particular spec.
+    depend on whatever the previously executed example left behind (rspec-sidekiq
+    defaults to `fake`), which would make ordering-dependent surprises possible.
+ 
+-## Where the remaining `spec/requests` time goes
++## Where the remaining `spec/requests` time goes (as of phase 2, see phase 3 below)
+ 
+ - **`Fabricate` is 41%** of the run (it was 54% before phase 2), and HTTP
+   request processing (everything below `Propshaft::Server#call`) is ~26%.
+@@ -218,26 +230,118 @@ particular spec.
+   controllers/serializers is charged to whichever example touches them first —
+   that is why the "slowest examples" list contains random one-off outliers.
+ 
++## Phase 3 — factories, `spec/models` + `spec/requests` (~25% faster)
++
++Baseline 117 s (39.5 s + 77.5 s) → 87 s (29.4 s + 57.8 s). Everything below is
++either a fabricator change or a support file: no example was rewritten.
++
++`PROFILE=1 FPROF=1` is the entry point here. Before this phase it reported, for
++`spec/models`, 6871 fabricated records (3484 top level!) and 32 s of the 42 s
++spent inside `Fabricate`; `spec/requests` was at 10 229 records / 39 s.
++
++1. **The `:status` fabricator created a `Bookmark` in `after_create` (~7 s).**
++   Every single fabricated status got a bookmark, and since the `:bookmark`
++   fabricator has its own `account`, every status also paid for **one extra
++   local account** (i.e. an account + a user + a keypair + their validations).
++   That was 1048 bookmarks / 1028 in `spec/models` / `spec/requests`
++   (6.5 s and 7.4 s of factory time), for something no spec relies on: the
++   handful of specs that need bookmarks fabricate them explicitly. Removed.
++
++   Lesson: `after_create` hooks in a fabricator are multiplied by everything
++   that references it, and `FPROF`'s `total` vs `top-level` columns are what
++   makes such cascades visible (`bookmark` had 1048 total for 17 top-level).
++
++2. **The `:user` fabricator created two `LoginActivity` records in
++   `after_create` (~1.5 s).** Local accounts always build a user, so this was
++   2466 useless inserts for `spec/requests` alone. The only specs about login
++   activities fabricate them explicitly. Removed.
++
++3. **`Faker` in the hottest fabricators (~1.5 s).**
++   `Faker::Internet.user_name` costs ~0.25 ms (`Faker::Base.with_locale` +
++   translation lookups) and the `:account` fabricator called it for each of the
++   ~2600-3200 accounts of a run; `Faker::Internet.email` did the same for users.
++   Both are now plain sequences (`user_#{i}` / `user#{i}@example#{i}.com`),
++   which keeps them unique. The per-user email domain is unique on purpose: a
++   shared domain could collide with the `EmailDomainBlock`s some specs create
++   and silently flip `User#approved`.
++
++   `Faker` is fine in the fabricators that are used a few dozen times; it is not
++   fine in `:account`, `:user` or `:status`.
++
++4. **Premailer's CSS inlining (~4.5 s, `spec/support/premailer.rb`).**
++   Not a fabricator, but the same kind of "work nobody looks at" that inline
++   Sidekiq multiplies: `WORKER_PROF=1` (see `spec/support/profiling.rb`) showed
++   `ActiveJob(ActionMailer::MailDeliveryJob)` at 5.4 s for 150 emails in
++   `spec/requests` (1.5 s / 33 in `spec/models`) while the *rendering* of those
++   emails only accounted for 0.8 s. The rest is the `premailer-rails` delivery
++   interceptor: for every email it re-parses the mailer stylesheet and runs a
++   Nokogiri query per CSS rule (~20 ms, i.e. ~2/3 of a delivery). No spec
++   outside `spec/mailers` asserts anything about the inlined styles, so the
++   interceptor is now registered only for `type: :mailer` examples and for
++   examples tagged `:premailer`.
++
++## Where the remaining time goes (after phase 3)
++
++- `Fabricate` is still ~70% of `spec/models` (21 s of 30 s) and ~42% of
++  `spec/requests` (25 s of 59 s), but what is left is mostly irreducible without
++  touching either the app or the examples:
++  - a **local account costs ~6 ms** (~15 queries): it always builds a `User`
++    (upstream behavior, specs rely on `account.user`), and `User` validations
++    /callbacks hit `UsernameBlock.matches?` twice (~0.55 ms, it builds a
++    non-trivial Arel query), `EmailDomainBlock.requires_approval?`,
++    `UserRole.everyone` and `Setting`. A **remote account costs ~1.9 ms**.
++  - the fixed RSA keypair in the `:account` fabricator is essential: without it
++    `Account#generate_keys` runs `OpenSSL::PKey::RSA.new(2048)` and a single
++    account jumps to **~40 ms** (this is why `Fabricate(:keypair)` is slow —
++    its default account is created with `keypairs: []`).
++  - a status with an existing account costs ~2.2 ms (status + conversation
++    insert/update + `AccountStat` upsert).
++- **Media processing is ~16% of `spec/models`** (4.8 s for 40
++  `Fabricate(:media_attachment)`): `Paperclip::Attachment#post_process` →
++  `Terrapin`/`ffmpeg`/`vips`. It is almost entirely
++  `spec/models/media_attachment_spec.rb`, which fabricates a different fixture
++  (webm, mp3, ogg, heic, …) per example on purpose, so there is nothing generic
++  to fix. `spec/requests` pays ~2.4 s for the same reason (media endpoints).
++- Inline Sidekiq work in `spec/requests` is now ~9 s of genuine domain logic
++  (`LocalNotificationWorker` 254 calls / 5 s, `DistributionWorker` 195 calls /
++  4 s), triggered by specs that legitimately call `PostStatusService`,
++  `FavouriteService`, … in their `before` hooks. `TriggerWebhookWorker` still
++  runs 3956 times but the phase 2 guard keeps it at 0.55 s.
++- Setup vs. examples (`RD_PROF`) is still ~70% setup, but very flat: the slowest
++  file of `spec/models` is 4.7 s (`media_attachment_spec.rb`) and the slowest of
++  `spec/requests` is 4.3 s (`api/v2/notifications_spec.rb`); the median file is
++  under 0.3 s. There is no single file left worth optimizing on its own.
++
+ ## Ideas for the next phases
+ 
+-- Factories (explicitly out of scope for phases 1 and 2): the `:user` fabricator
+-  creates two `login_activity` records for every user, `:account` runs
+-  `Faker::Internet.user_name`/`email` per record, and account/user creation
+-  triggers a long chain of validation queries. Deduplicating/building instead
+-  of creating should cut the ~65 queries per example significantly.
++- **Data reuse.** With the distribution being that flat, the next significant
++  win has to come from creating fewer records, i.e. `before_all`/`let_it_be`
++  (test-prof, already available through `spec/support/data_reuse.rb`). The most
++  promising target is `spec/support/api_authentication.rb`: its `let(:user)` is
++  fabricated ~900 times in `spec/requests` (~4 ms each) and could become a
++  `let_it_be(:user, reload: true)`, which would make it one user per file
++  (~70) without touching a single spec file. It needs care though: dozens of
++  files override `let(:user)`/`let(:scopes)`, examples mutate the user and its
++  account (the DB is rolled back per example, but in-memory state is not, hence
++  `reload: true`), and any `use_transactional_tests: false` group in the same
++  file would wipe the shared records.
++- The heavy `before` hooks of `spec/requests/api/v{1,2}/notifications_spec.rb`,
++  `spec/requests/activitypub/replies_spec.rb` and the timeline specs (1-4 s each)
++  are the other candidates, but they reference `let`s, which `before_all` does
++  not support — they would have to be converted to `let_it_be` as well.
++- Caching image/video processing results across examples (the same fixture is
++  processed over and over) was considered and rejected: Mastodon's processors
++  have side effects on the record (`blurhash`, `file_meta`, colors), so caching
++  only the output file would change behavior.
+ - `config/initializers/httplog.rb` is active in the test environment
+   (`Rails.env.local?`), patching Net::HTTP & co. Measured in phase 2: it does
+-  not show up in the profile of `spec/requests` at all (outbound requests are
+-  stubbed by WebMock), so it is not worth touching.
+-- Data reuse (`before_all`/`let_it_be` from test-prof) attacks the setup share
+-  directly. Phase 2 only used it for `spec/requests/cache_spec.rb`, where the
+-  fixtures are strictly read-only and shared by 258 examples. Rolling it out
+-  further (`spec/requests/activitypub/replies_spec.rb`, the notification specs,
+-  …) is the obvious next step, but it needs care: `before_all` data is shared,
+-  so any example mutating it must rely on the per-example transaction.
+-- Nothing in the shared RSpec hooks is hot: 500 trivial examples run in ~0.7 s
+-  (~1.3 ms/example including the `Rails.cache.clear` + redis flush `after`
+-  hooks and the `Resolv::DNS` stub `before` hook).
++  not show up in the profile at all (outbound requests are stubbed by WebMock),
++  so it is not worth touching.
++- `Rack::Attack` is in the middleware stack **twice** (~1% of `spec/requests`).
++  Fixing it would change rate-limiting behavior, so it stays out of scope, but
++  it still looks like a genuine bug.
++- GC is ~9%. `GC.config(rgengc_allow_full_mark: false)` was measured in phase 2
++  on `spec/requests/api/v1`: no gain, +300 MB RSS. Not worth it.
+ 
+ [test-prof]: https://test-prof.evilmartians.io/
+ [stackprof]: https://github.com/tmm1/stackprof
+diff --git a/spec/fabricators/account_fabricator.rb b/spec/fabricators/account_fabricator.rb
+index 6a5218cee9..6f355f756f 100644
+--- a/spec/fabricators/account_fabricator.rb
++++ b/spec/fabricators/account_fabricator.rb
+@@ -4,7 +4,7 @@ require_relative '../support/signing_keys_helpers'
+ 
+ Fabricator(:account) do
+   transient :suspended, :silenced, :legacy_keypair, :requested_deletion
+-  username              { sequence(:username) { |i| "#{Faker::Internet.user_name(separators: %w(_))}#{i}" } }
++  username              { sequence(:username) { |i| "user_#{i}" } }
+   last_webfingered_at   { Time.now.utc }
+   public_key            { |attrs| attrs[:legacy_keypair] ? SigningKeysHelpers::PUBLIC_RSA_TEST_KEY : '' }
+   private_key           { |attrs| attrs[:legacy_keypair] && attrs[:domain].nil? ? SigningKeysHelpers::PRIVATE_RSA_TEST_KEY : nil }
+diff --git a/spec/fabricators/status_fabricator.rb b/spec/fabricators/status_fabricator.rb
+index d38eec8603..17ac9ccd8a 100644
+--- a/spec/fabricators/status_fabricator.rb
++++ b/spec/fabricators/status_fabricator.rb
+@@ -7,8 +7,4 @@ Fabricator(:status) do
+   after_build do |status|
+     status.uri = Faker::Internet.device_token if !status.account.local? && status.uri.nil?
+   end
+-
+-  after_create do |status|
+-    Fabricate(:bookmark, status: status)
+-  end
+ end
+diff --git a/spec/fabricators/user_fabricator.rb b/spec/fabricators/user_fabricator.rb
+index c82a3c918e..4377d67747 100644
+--- a/spec/fabricators/user_fabricator.rb
++++ b/spec/fabricators/user_fabricator.rb
+@@ -7,15 +7,11 @@ Fabricator(:user) do
+       attrs.fetch(:account_attributes, {}).merge(user: nil)
+     )
+   end
+-  email        { sequence(:email) { |i| "#{i}#{Faker::Internet.email}" } }
++  email        { sequence(:email) { |i| "user#{i}@example#{i}.com" } }
+   password     '123456789'
+   confirmed_at { Time.zone.now }
+   current_sign_in_at { Time.zone.now }
+   agreement true
+-
+-  after_create do |user|
+-    2.times { Fabricate(:login_activity, user: user) }
+-  end
+ end
+ 
+ Fabricator(:admin_user, from: :user) do
+diff --git a/spec/support/premailer.rb b/spec/support/premailer.rb
+new file mode 100644
+index 0000000000..0efd5e3a51
+--- /dev/null
++++ b/spec/support/premailer.rb
+@@ -0,0 +1,37 @@
++# frozen_string_literal: true
++
++# `premailer-rails` registers a delivery interceptor that inlines the mailer CSS
++# into every outgoing email. Doing so re-parses the whole mailer stylesheet and
++# then runs a Nokogiri query for each of its rules against the rendered HTML,
++# which costs ~20 ms per email -- about two thirds of the cost of delivering one.
++#
++# Sidekiq runs inline in the test suite, so every email a spec (indirectly)
++# triggers gets rendered *and* delivered while the example runs: that was ~5 s of
++# `spec/requests` and ~1.5 s of `spec/models` spent inlining CSS nobody looks at,
++# since those specs only care about the fact that an email was sent (and, at
++# most, about its subject or recipient).
++#
++# The interceptor is therefore only enabled where the resulting HTML is actually
++# under test: mailer specs, and any example tagged `:premailer`.
++module PremailerHelpers
++  def self.enabled
++    ActionMailer::Base.register_interceptor(Premailer::Rails::Hook)
++    yield
++  ensure
++    ActionMailer::Base.unregister_interceptor(Premailer::Rails::Hook)
++  end
++end
++
++RSpec.configure do |config|
++  config.before(:suite) do
++    ActionMailer::Base.unregister_interceptor(Premailer::Rails::Hook)
++  end
++
++  config.around(:each, type: :mailer) do |example|
++    PremailerHelpers.enabled { example.run }
++  end
++
++  config.around(:each, :premailer) do |example|
++    PremailerHelpers.enabled { example.run }
++  end
++end
+diff --git a/spec/support/profiling.rb b/spec/support/profiling.rb
+index 563b9cbc3f..b82aa29c6a 100644
+--- a/spec/support/profiling.rb
++++ b/spec/support/profiling.rb
+@@ -9,3 +9,49 @@
+ #   PROFILE=1 FPROF=1 bundle exec rspec spec/models
+ #   PROFILE=1 TEST_STACK_PROF=1 bundle exec rspec spec/models
+ require 'test-prof' if ENV['PROFILE']
++
++# Sidekiq runs inline in the test suite, so a chunk of the runtime is spent in
++# workers (and in the mailers they deliver) that no example is looking at.
++# `WORKER_PROF=1` reports how many times each worker/mailer ran and how long it
++# took, which is how the wasteful ones get spotted.
++if ENV['WORKER_PROF']
++  module WorkerProfiling
++    STATS = Hash.new { |hash, key| hash[key] = [0, 0.0] }
++
++    def self.record(key, duration)
++      stats = STATS[key]
++      stats[0] += 1
++      stats[1] += duration
++    end
++
++    def self.report
++      warn row('WORKER', 'COUNT', 'TIME')
++      STATS
++        .sort_by { |_, (_, time)| -time }
++        .first(40)
++        .each { |key, (count, time)| warn row(key, count, time.round(3)) }
++    end
++
++    def self.row(key, count, time)
++      "#{key.to_s.ljust(60)}#{count.to_s.rjust(10)}#{time.to_s.rjust(10)}"
++    end
++
++    module JobTracking
++      def process_job(job_hash)
++        started_at = Process.clock_gettime(Process::CLOCK_MONOTONIC)
++        super
++      ensure
++        key = name == 'Sidekiq::ActiveJob::Wrapper' ? "ActiveJob(#{job_hash['wrapped']})" : name
++        WorkerProfiling.record(key, Process.clock_gettime(Process::CLOCK_MONOTONIC) - started_at)
++      end
++    end
++  end
++
++  Sidekiq::Job::ClassMethods.prepend(WorkerProfiling::JobTracking)
++
++  ActiveSupport::Notifications.subscribe('process.action_mailer') do |_name, start, finish, _id, payload|
++    WorkerProfiling.record("render #{payload[:mailer]}##{payload[:action]}", finish - start)
++  end
++
++  at_exit { WorkerProfiling.report }
++end

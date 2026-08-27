@@ -1,0 +1,106 @@
+{
+  "trial": "mastodon-test-optimization__nV3qxJ4",
+  "task": "mastodon-test-optimization",
+  "agent": "miniswen",
+  "model": "openrouter/anthropic/claude-opus-5",
+  "index": 1,
+  "revision": {
+    "commit": "a0bddcb042cc931b2e184a195a70bdf090419613",
+    "dirty": false
+  },
+  "lemans_version": "1.0.0",
+  "tags": [
+    "rails",
+    "rspec",
+    "test-optimization",
+    "multi-step",
+    "over-cost-limit"
+  ],
+  "metadata": {
+    "merged_from_steps": 3,
+    "per_step_usage": [
+      {
+        "step": 1,
+        "steps": 72,
+        "cost_usd": 3.3821,
+        "input_tokens": 3880377,
+        "output_tokens": 37392,
+        "cached_tokens": 3792149,
+        "duration": null,
+        "over_step_limit": false,
+        "over_cost_limit": false
+      },
+      {
+        "step": 2,
+        "steps": 94,
+        "cost_usd": 7.0131,
+        "input_tokens": 8643982,
+        "output_tokens": 69068,
+        "cached_tokens": 8476223,
+        "duration": 3403.0,
+        "over_step_limit": false,
+        "over_cost_limit": true
+      },
+      {
+        "step": 3,
+        "steps": 97,
+        "cost_usd": 7.2591,
+        "input_tokens": 9333198,
+        "output_tokens": 66731,
+        "cached_tokens": 9172427,
+        "duration": 3056.0,
+        "over_step_limit": false,
+        "over_cost_limit": true
+      }
+    ],
+    "default_limits": {
+      "steps": 100,
+      "cost_usd": 5.0
+    },
+    "over_default_limits": {
+      "steps": false,
+      "cost_usd": true,
+      "merged_steps": true,
+      "merged_cost_usd": true,
+      "note": "runs executed without limits; per-step flags computed post-hoc against defaults (100 steps, $5); merged_* flags compare 3-step totals"
+    },
+    "verification": {
+      "speedup_ratio": 4.446,
+      "speed_grade": 12,
+      "speed_grade_formula": "round(min(old/new, 2) * 5) + (2 if old/new > 2.5)",
+      "features_score": 4.75,
+      "total_points": 16.75,
+      "max_points": 20,
+      "reward": 0.8375
+    },
+    "timestamps_note": "started_at/finished_at from step commit times; step-1 working time not included (first commit marks step-1 end)"
+  },
+  "phases": [
+    {
+      "name": "agent",
+      "started_at": "2026-08-27T18:18:14.000000Z",
+      "finished_at": "2026-08-27T20:05:53.000000Z"
+    }
+  ],
+  "reward": 0.8375,
+  "outcome": {
+    "name": "completed",
+    "scored": true
+  },
+  "usage": {
+    "input_tokens": 21857557,
+    "output_tokens": 173191,
+    "cached_tokens": 21440799,
+    "steps": 263,
+    "cost_usd": 17.654255,
+    "cost_source": {
+      "name": "model_registry",
+      "model": "openrouter/anthropic/claude-opus-5",
+      "priced_as": "openrouter/anthropic/claude-opus-5",
+      "registry": "ruby_llm 1.16.0 (registry 2026-07-21T02:33:57Z)"
+    }
+  },
+  "duration": 6459.0,
+  "started_at": "2026-08-27T18:18:14Z",
+  "finished_at": "2026-08-27T20:05:53Z"
+}

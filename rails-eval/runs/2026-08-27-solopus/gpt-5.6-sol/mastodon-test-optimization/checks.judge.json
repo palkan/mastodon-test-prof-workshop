@@ -1,0 +1,45 @@
+{
+  "version": "judge-diff-reading",
+  "method": "independent LLM judge scoring all 9 features from agent.patch only (no execution, no access to runtime results); fractional credit allowed",
+  "checks": {
+    "feature:sidekiq_fake": 1.0,
+    "feature:log_level_fatal": 0.0,
+    "feature:paperclip_stub": 0.0,
+    "feature:redis_flushdb": 1.0,
+    "feature:cache_spec_before_all": 0.0,
+    "feature:factory_cascades": 1.0,
+    "feature:fabricate_build": 0.0,
+    "feature:password_encryption": 0.0,
+    "feature:faker_in_factories": 1.0
+  },
+  "rationale": {
+    "sidekiq_fake": "spec/rails_helper.rb before hook sets Sidekiq.testing!(:fake) for example.metadata[:type] in [:model, :request] unless tagged :inline_jobs; :inline retained elsewhere. Job-dependent model and request specs (admin account actions, email subscription, notifications, conversations, reports, favourites, home timeline, v2 notifications, user#mark_email_as_confirmed!) opted back in via :inline_jobs. Exactly matches the feature: a plain model/request spec sees inline? == false.",
+    "log_level_fatal": "config/environments/test.rb untouched; no log-level change anywhere.",
+    "paperclip_stub": "No Paperclip stubbing.",
+    "redis_flushdb": "config.after now calls redis.flushdb instead of redis.del(redis.keys).",
+    "cache_spec_before_all": "cache_spec.rb untouched; agent's own docs name it as the next hotspot and explicitly defer it.",
+    "factory_cascades": "Both planted cascades removed: status after_create Bookmark and user after_create 2x LoginActivity.",
+    "fabricate_build": "No fabricator association was converted from persisted Fabricate() to Fabricate.build (conversation, follow_request, keypair, web_push_subscription, etc. all untouched).",
+    "password_encryption": "User fabricator keeps plain password '123456789'; no digest pre-set or memoization, so BCrypt still runs per created user.",
+    "faker_in_factories": "Faker removed from both hot fabricators: account username -> sequence 'fabricated_user#{i}', user email -> 'user#{i}@example.com'."
+  },
+  "confidence": {
+    "sidekiq_fake": "high",
+    "log_level_fatal": "high",
+    "paperclip_stub": "high",
+    "redis_flushdb": "high",
+    "cache_spec_before_all": "high",
+    "factory_cascades": "high",
+    "fabricate_build": "high",
+    "password_encryption": "high",
+    "faker_in_factories": "high"
+  },
+  "comparison_vs_runtime": {},
+  "grading": {
+    "features_score_judge": 4.0,
+    "features_score_runtime": 4,
+    "reward_judge_features": 0.65,
+    "reward_runtime": 0.65,
+    "note": "speed grade cannot be derived from a diff; reused from runtime measurement"
+  }
+}

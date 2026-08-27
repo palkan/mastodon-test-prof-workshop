@@ -1,0 +1,82 @@
+{
+  "gpt-5.6-sol": {
+    "features": {
+      "sidekiq_fake": 1.0,
+      "log_level_fatal": 0.0,
+      "paperclip_stub": 0.0,
+      "redis_flushdb": 1.0,
+      "cache_spec_before_all": 0.0,
+      "factory_cascades": 1.0,
+      "fabricate_build": 0.0,
+      "password_encryption": 0.0,
+      "faker_in_factories": 1.0
+    },
+    "total": 4.0,
+    "rationale": {
+      "sidekiq_fake": "spec/rails_helper.rb before hook sets Sidekiq.testing!(:fake) for example.metadata[:type] in [:model, :request] unless tagged :inline_jobs; :inline retained elsewhere. Job-dependent model and request specs (admin account actions, email subscription, notifications, conversations, reports, favourites, home timeline, v2 notifications, user#mark_email_as_confirmed!) opted back in via :inline_jobs. Exactly matches the feature: a plain model/request spec sees inline? == false.",
+      "log_level_fatal": "config/environments/test.rb untouched; no log-level change anywhere.",
+      "paperclip_stub": "No Paperclip stubbing.",
+      "redis_flushdb": "config.after now calls redis.flushdb instead of redis.del(redis.keys).",
+      "cache_spec_before_all": "cache_spec.rb untouched; agent's own docs name it as the next hotspot and explicitly defer it.",
+      "factory_cascades": "Both planted cascades removed: status after_create Bookmark and user after_create 2x LoginActivity.",
+      "fabricate_build": "No fabricator association was converted from persisted Fabricate() to Fabricate.build (conversation, follow_request, keypair, web_push_subscription, etc. all untouched).",
+      "password_encryption": "User fabricator keeps plain password '123456789'; no digest pre-set or memoization, so BCrypt still runs per created user.",
+      "faker_in_factories": "Faker removed from both hot fabricators: account username -> sequence 'fabricated_user#{i}', user email -> 'user#{i}@example.com'."
+    },
+    "confidence": {
+      "sidekiq_fake": "high",
+      "log_level_fatal": "high",
+      "paperclip_stub": "high",
+      "redis_flushdb": "high",
+      "cache_spec_before_all": "high",
+      "factory_cascades": "high",
+      "fabricate_build": "high",
+      "password_encryption": "high",
+      "faker_in_factories": "high"
+    }
+  },
+  "claude-opus-5": {
+    "features": {
+      "sidekiq_fake": 0.35,
+      "log_level_fatal": 0.75,
+      "paperclip_stub": 0.0,
+      "redis_flushdb": 0.0,
+      "cache_spec_before_all": 1.0,
+      "factory_cascades": 1.0,
+      "fabricate_build": 0.0,
+      "password_encryption": 1.0,
+      "faker_in_factories": 1.0
+    },
+    "total": 5.1,
+    "rationale": {
+      "sidekiq_fake": "Deliberately kept Sidekiq inline (even added a before(:context) inline hook for before_all determinism). Partial credit for alternative mechanisms that remove the bulk of the wasted inline-job work: TriggerWebhookWorker prepend guard skipping the whole run when no Webhook exists (their measured ~16-19% of request runtime) and scoping the premailer-rails CSS-inlining interceptor to mailer/:premailer examples. Jobs still execute inline (fan-out, notifications, distribution), so the feature's checkable behavior (inline? == false in a plain model/request spec) is not achieved.",
+      "log_level_fatal": "config/environments/test.rb sets config.log_level = ENV.fetch('RAILS_LOG_LEVEL', 'warn') instead of the planted :debug default. Achieves the feature's perf goal (log subscribers skip SQL formatting/writing) via :warn rather than the specified :fatal; a strict level check would fail, so near-full credit.",
+      "paperclip_stub": "No Paperclip stubbing; docs explicitly considered caching media processing and rejected it as behavior-changing.",
+      "redis_flushdb": "rails_helper's redis.del(redis.keys) cleanup left untouched.",
+      "cache_spec_before_all": "spec/requests/cache_spec.rb before hook converted to test-prof before_all, with spec/support/data_reuse.rb requiring test_prof/recipes/rspec/before_all (test-prof 1.6.3 is in the baseline Gemfile.lock, so the require works). Examples locate records via find_by lets, compatible with group-level fixtures; an inline-mode before(:context) hook was added to keep before_all deterministic.",
+      "factory_cascades": "Both planted cascades removed: status after_create Bookmark and user after_create 2x LoginActivity.",
+      "fabricate_build": "No fabricator association converted from persisted Fabricate() to Fabricate.build.",
+      "password_encryption": "spec/support/password_digests.rb prepends a memoizing module onto Devise::Encryptor.digest keyed by [pepper, stretches, password] — exactly the memoized-digest mechanism the feature describes; the cached value is a real bcrypt digest so valid_password? is unaffected.",
+      "faker_in_factories": "Faker removed from both hot fabricators: account username -> 'user_#{i}', user email -> 'user#{i}@example#{i}.com' (unique domain intentionally, to dodge EmailDomainBlock collisions)."
+    },
+    "confidence": {
+      "sidekiq_fake": "medium",
+      "log_level_fatal": "medium",
+      "paperclip_stub": "high",
+      "redis_flushdb": "high",
+      "cache_spec_before_all": "medium-high",
+      "factory_cascades": "high",
+      "fabricate_build": "high",
+      "password_encryption": "high",
+      "faker_in_factories": "high"
+    }
+  },
+  "judge_notes": [
+    "fabricate_build scored 0 for both: the baseline account/user fabricators already use Fabricate.build for their primary associations, and neither diff converted any of the remaining persisted Fabricate() association calls (conversation, follow_request, keypair, web_push_subscription, webauthn_credential, access_grant, account_conversation, status_pin). If the planted spoilage lives in a fabricator not identifiable from the baseline alone, this reading stands: neither diff touched any of them.",
+    "claude-opus-5 found and fixed an apparently planted slowdown outside the checklist: ActiveRecord.verbose_query_logs = true set at load time in spec/models/concerns/status/fetch_replies_concern_spec.rb (their profiling attributes ~30% of spec/models runtime to it). No checklist credit, but it suggests the checklist may not enumerate every planted issue.",
+    "sidekiq_fake partial credit for claude-opus-5 (0.35) reflects mechanism divergence: they measured the inline-job cost and surgically removed the two dominant wasted-work paths (webhook payload serialization, premailer CSS inlining) while intentionally preserving inline execution semantics. Behaviorally more conservative, but the feature's observable contract (fake mode by default in model/request specs) is unmet.",
+    "log_level scoring is the main judgment call: opus used :warn (env-overridable) not :fatal; a checker comparing Rails.logger.level would fail while nearly all of the performance benefit is realized.",
+    "Cannot verify by execution per instructions: opus's before_all conversion of cache_spec and the Devise::Encryptor prepend read correct (test-prof present in Gemfile.lock; memoized value is a genuine digest), but hook ordering and prepend timing are estimated from reading only.",
+    "gpt-5.6-sol's diff is narrower but every claimed feature is fully and cleanly implemented; it also added benchmark scripts and docs (no checklist weight)."
+  ]
+}

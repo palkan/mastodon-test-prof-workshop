@@ -1,0 +1,283 @@
+diff --git a/docs/TESTING_PERFORMANCE.md b/docs/TESTING_PERFORMANCE.md
+index 40598ec594..ce9f5eaedc 100644
+--- a/docs/TESTING_PERFORMANCE.md
++++ b/docs/TESTING_PERFORMANCE.md
+@@ -42,8 +42,23 @@ bundle exec stackprof /tmp/stackprof.dump --limit 30
+ bundle exec stackprof /tmp/stackprof.dump --method 'ActiveRecord::LogSubscriber#sql'
+ ```
+ 
++`--sort-total` is what you usually want with stackprof: the interesting frames
++(a wasteful worker, a route reload, a serializer) have a tiny *self* time and a
++large *total* one. `--method 'Some::Frame'` then shows callers/callees.
++
+ Useful RSpec built-in: `bundle exec rspec spec/models --profile 40`.
+ 
++To find repeated/pointless queries, a throwaway subscriber beats any gem:
++
++```ruby
++# /tmp/qcount.rb, load it with `RUBYOPT=-r/tmp/qcount`
++$q = Hash.new(0)
++ActiveSupport::Notifications.subscribe('sql.active_record') do |_n, s, f, _id, p|
++  $q["#{p[:name]} | #{p[:sql].to_s[0, 60]}"] += 1 unless p[:cached]
++end
++at_exit { $q.sort_by { |_, v| -v }.first(40).each { |k, v| warn format('%6d %s', v, k) } }
++```
++
+ Do not try to run the whole suite in one go while iterating; go directory by
+ directory. System specs (`:js`) and streaming specs are excluded by default and
+ are not part of these numbers.
+@@ -54,14 +69,18 @@ are not part of these numbers.
+ | --- | --- | --- | --- |
+ | Initial baseline | `spec/models` | 1795 | ~130 s (`Finished in 2m8s`) |
+ | After phase 1 (config only) | `spec/models` | 1795 | ~55-59 s (`Finished in 55.0s`) — **~57% faster** |
++| Phase 2 baseline | `spec/requests` | 1877 | ~114 s (`Finished in 1m54s`) |
++| After phase 2 (config only) | `spec/requests` | 1877 | ~77 s (`Finished in 1m17s`) — **~32% faster** |
+ 
+-Reference numbers for other directories after phase 1 (they benefit from the
++Reference numbers for other directories after phase 2 (they benefit from the
+ same configuration changes):
+ 
+ | Scope | Examples | Wall time |
+ | --- | --- | --- |
+-| `spec/validators spec/policies spec/presenters spec/serializers` | 547 | ~15 s |
+-| `spec/workers spec/mailers spec/helpers spec/routing spec/generators spec/config spec/configuration spec/locales spec/fabrication spec/views spec/chewy` | 795 | ~38 s |
++| `spec/models` | 1795 | ~40 s (was ~55 s after phase 1) |
++| `spec/services` | 712 | ~37 s |
++| `spec/controllers spec/workers spec/lib` | 1975 | ~83 s |
++| `spec/validators spec/policies spec/presenters spec/serializers spec/mailers spec/helpers spec/routing spec/generators spec/config spec/configuration spec/locales spec/fabrication spec/views spec/chewy spec/search` | 1013 | ~21 s |
+ 
+ ## Phase 1 — `spec/models` (configuration only, ~55% faster)
+ 
+@@ -112,19 +131,110 @@ same configuration changes):
+ - GC is ~5-7%; `Terrapin`/`vips` subprocesses (~6%) are almost entirely
+   `spec/models/media_attachment_spec.rb`.
+ 
++## Phase 2 — `spec/requests` (configuration only, ~32% faster)
++
++Baseline: 1877 examples in ~114 s. After: ~77 s. Three changes, all of them
++targeting work that is *shared by hundreds of examples* rather than any
++particular spec.
++
++1. **Discarded webhook payloads (~20 s, the single biggest win).**
++   Creating a user, an account, a status or a report enqueues
++   `TriggerWebhookWorker` from an `after_commit` callback, and the suite runs
++   Sidekiq inline (`Sidekiq.testing!(:inline)`), so the worker runs *during*
++   every `Fabricate` call. `WebhookService#call` builds the JSON payload of the
++   event — a full `ActiveModelSerializers` rendering of the record and its
++   associations — **before** looking up the webhooks it should be delivered to.
++   Virtually no spec registers a webhook, so the result was thrown away every
++   single time: `TriggerWebhookWorker#perform` had a **18.7%** total share in
++   stackprof for `spec/requests` (`WebhookService#serialize_event` alone 16.4%),
++   and it was hurting `spec/models` just as much (`spec/models` went from ~55 s
++   to ~40 s).
++
++   `spec/support/webhooks.rb` prepends a guard to the worker that bails out when
++   `Webhook.exists?` is false. This is behavior preserving: with no webhook at
++   all, `webhooks_for_event` returns an empty list and no
++   `Webhooks::DeliveryWorker` is ever enqueued. Specs that do register a webhook
++   still go through the whole code path.
++
++   Lesson: with inline Sidekiq, *any* wasteful `after_commit` job is multiplied
++   by the number of fabricated records. Look for workers with a high share in
++   the profile and check whether their work is observable at all.
++
++2. **Route sets redrawn once per example (~3 s).**
++   `spec/requests/signature_verification_spec.rb` routes to a controller that
++   only exists in the spec, so it calls `Rails.application.routes.draw` (which
++   *wipes* the whole route set) in a `before` and `Rails.application.reload_routes!`
++   in an `after`. Re-evaluating `config/routes.rb` costs ~150 ms (plus ~40 ms of
++   `NamedRouteCollection#clear!`, which `remove_method`s every url helper):
++   `RouteSet#draw` had a 5.4% share, and `Module#define_method` /
++   `Module#remove_method` showed up in the top 10 of the flat profile.
++
++   The routes are now drawn once per example group (`before(:all)`) and restored
++   once (`after(:all)`); only `stub_const` stays per example, which is cheap.
++   `spec/requests/api/v1/csp_spec.rb` does the same thing but has a single
++   example, so it was left alone.
++
++3. **`before_all` for the shared fixtures of `spec/requests/cache_spec.rb`
++   (~12 s).** That single file is 258 of the 1877 examples, and `RD_PROF`
++   reported 19.9 s of setup out of 20.2 s: its `before` hook fabricates the very
++   same 8 records (account, moderator user, two statuses, invite, poll, access
++   token, follow) for every example, and no example modifies them. Switching the
++   hook to test-prof's `before_all` (see `spec/support/data_reuse.rb`) creates
++   them once per group inside a transaction that is rolled back afterwards;
++   examples keep running in their own nested transaction, so anything they
++   change is still rolled back. 18.8 s → 7.2 s for that file, and the examples
++   read exactly the same.
++
++   `Sidekiq.testing!(:inline)` is now also applied in a `config.before(:context)`
++   hook: otherwise the mode inside a `before(:context)`/`before_all` block would
++   depend on whatever the previously executed example left behind (rspec-sidekiq
++   defaults to `fake`), which would make ordering-dependent surprises possible.
++
++## Where the remaining `spec/requests` time goes
++
++- **`Fabricate` is 41%** of the run (it was 54% before phase 2), and HTTP
++  request processing (everything below `Propshaft::Server#call`) is ~26%.
++  Nothing in the shared RSpec/request setup is hot anymore: 200 empty examples
++  plus 200 `get '/health'` examples run in 1.3 s.
++- SQL is ~20% of the wall time and there are **~82 queries per example**
++  (75.7k queries for the 916 examples of `spec/requests/api/v1`, 8.2 s total,
++  0.11 ms average). The top offenders are all factory side effects:
++  `SAVEPOINT`/`RELEASE SAVEPOINT` (15k — every `save` inside the non-joinable
++  test transaction), `UserRole Load`, `Keypair Exists?`,
++  `UsernameBlock Exists?`, `Setting Load`, `Account Create`, `User Create`,
++  `LoginActivity Create`. ~2 accounts and ~2 users are created per example.
++- The remaining inline Sidekiq work (~15%) is genuine domain logic
++  (`LocalNotificationWorker`/`NotifyService`, `DistributionWorker`/
++  `FanOutOnWriteService`, `PostStatusService`).
++- GC is ~10%. `GC.config(rgengc_allow_full_mark: false)` was measured on
++  `spec/requests/api/v1` and made no difference (42.7 s vs 42.0 s) while pushing
++  RSS to 741 MB — not worth it.
++- `Rack::Attack` is in the middleware stack **twice** (~1% of the run). Fixing
++  it would change rate-limiting behavior, so it is out of scope here, but it
++  looks like a genuine bug.
++- Media processing subprocesses (`Terrapin`/`vips`, ~2.5%) are almost entirely
++  `spec/requests/api/v{1,2}/media_spec.rb`.
++- With `config.eager_load = false` (i.e. not on CI) the lazy Zeitwerk loading of
++  controllers/serializers is charged to whichever example touches them first —
++  that is why the "slowest examples" list contains random one-off outliers.
++
+ ## Ideas for the next phases
+ 
+-- Factories (explicitly out of scope for phase 1): the `:user` fabricator
++- Factories (explicitly out of scope for phases 1 and 2): the `:user` fabricator
+   creates two `login_activity` records for every user, `:account` runs
+   `Faker::Internet.user_name`/`email` per record, and account/user creation
+   triggers a long chain of validation queries. Deduplicating/building instead
+   of creating should cut the ~65 queries per example significantly.
+ - `config/initializers/httplog.rb` is active in the test environment
+-  (`Rails.env.local?`), patching Net::HTTP & co. Mostly irrelevant for model
+-  specs, worth measuring for `spec/requests`.
+-- Data reuse (`before_all`/`let_it_be` from test-prof) would attack the ~78%
+-  setup share directly, but it changes how specs read, so it needs its own
+-  discussion.
++  (`Rails.env.local?`), patching Net::HTTP & co. Measured in phase 2: it does
++  not show up in the profile of `spec/requests` at all (outbound requests are
++  stubbed by WebMock), so it is not worth touching.
++- Data reuse (`before_all`/`let_it_be` from test-prof) attacks the setup share
++  directly. Phase 2 only used it for `spec/requests/cache_spec.rb`, where the
++  fixtures are strictly read-only and shared by 258 examples. Rolling it out
++  further (`spec/requests/activitypub/replies_spec.rb`, the notification specs,
++  …) is the obvious next step, but it needs care: `before_all` data is shared,
++  so any example mutating it must rely on the per-example transaction.
+ - Nothing in the shared RSpec hooks is hot: 500 trivial examples run in ~0.7 s
+   (~1.3 ms/example including the `Rails.cache.clear` + redis flush `after`
+   hooks and the `Resolv::DNS` stub `before` hook).
+diff --git a/spec/rails_helper.rb b/spec/rails_helper.rb
+index dc330809a1..163266e78e 100644
+--- a/spec/rails_helper.rb
++++ b/spec/rails_helper.rb
+@@ -109,6 +109,12 @@ RSpec.configure do |config|
+     Sidekiq.testing!(:inline)
+   end
+ 
++  # Same as above, for `before(:context)`/`before_all` blocks: without it, the
++  # mode would depend on whatever the previously executed example left behind.
++  config.before(:context) do
++    Sidekiq.testing!(:inline)
++  end
++
+   config.before :each, type: :cli do
+     stub_reset_connection_pools
+   end
+diff --git a/spec/requests/cache_spec.rb b/spec/requests/cache_spec.rb
+index 8fa5a03caa..d0892936c3 100644
+--- a/spec/requests/cache_spec.rb
++++ b/spec/requests/cache_spec.rb
+@@ -171,7 +171,10 @@ RSpec.describe 'Caching behavior' do
+   let(:user) { User.find_by(email: 'user@host.example') }
+   let(:token) { Doorkeeper::AccessToken.find_by(resource_owner_id: user.id) }
+ 
+-  before do
++  # The setup below is shared, read-only fixture data: fabricating it once for
++  # the whole group (rather than for each of the ~250 examples) is what makes
++  # this file bearable. See docs/TESTING_PERFORMANCE.md.
++  before_all do
+     alice = Fabricate(:account, username: 'alice')
+     user = Fabricate(:moderator_user, email: 'user@host.example')
+     status = Fabricate(:status, account: alice, id: 110_224_538_612_341_312)
+diff --git a/spec/requests/signature_verification_spec.rb b/spec/requests/signature_verification_spec.rb
+index 9556911901..2803d8be80 100644
+--- a/spec/requests/signature_verification_spec.rb
++++ b/spec/requests/signature_verification_spec.rb
+@@ -3,6 +3,13 @@
+ require 'rails_helper'
+ 
+ RSpec.describe 'signature verification concern' do
++  # `Rails.application.routes.draw` wipes the whole route set and
++  # `reload_routes!` has to evaluate `config/routes.rb` again, which is far too
++  # expensive to do for every single example: draw the test routes once for the
++  # whole group and restore the real ones when it is done.
++  before(:all) { draw_tests_controller_routes } # rubocop:disable RSpec/BeforeAfterAll
++  after(:all) { Rails.application.reload_routes! } # rubocop:disable RSpec/BeforeAfterAll
++
+   before do
+     stub_tests_controller
+ 
+@@ -10,8 +17,6 @@ RSpec.describe 'signature verification concern' do
+     travel_to '2023-12-20T10:00:00Z'
+   end
+ 
+-  after { Rails.application.reload_routes! }
+-
+   # Include the private key so the tests can be easily adjusted and reviewed
+   let(:actor_keypair) do
+     OpenSSL::PKey.read(<<~PEM_TEXT)
+@@ -767,7 +772,9 @@ RSpec.describe 'signature verification concern' do
+ 
+   def stub_tests_controller
+     stub_const('ActivityPub::TestsController', activitypub_tests_controller)
++  end
+ 
++  def draw_tests_controller_routes
+     Rails.application.routes.draw do
+       # NOTE: RouteSet#draw removes all routes, so we need to re-insert one
+       resource :instance_actor, path: 'actor', only: [:show]
+diff --git a/spec/support/data_reuse.rb b/spec/support/data_reuse.rb
+new file mode 100644
+index 0000000000..521c4e0dc2
+--- /dev/null
++++ b/spec/support/data_reuse.rb
+@@ -0,0 +1,10 @@
++# frozen_string_literal: true
++
++# `before_all` (from test-prof) runs its block once for the whole example group,
++# inside a transaction that is rolled back when the group is over, instead of
++# once per example. It is meant for the (usually large) groups that share the
++# very same read-only setup: examples still run in their own nested transaction,
++# so anything they change is rolled back as usual.
++#
++# See docs/TESTING_PERFORMANCE.md before reaching for it.
++require 'test_prof/recipes/rspec/before_all'
+diff --git a/spec/support/webhooks.rb b/spec/support/webhooks.rb
+new file mode 100644
+index 0000000000..b401960181
+--- /dev/null
++++ b/spec/support/webhooks.rb
+@@ -0,0 +1,24 @@
++# frozen_string_literal: true
++
++# Creating a user, an account, a status or a report enqueues `TriggerWebhookWorker`
++# from an `after_commit` callback, and Sidekiq runs inline in the test suite.
++#
++# The worker reloads the record and `WebhookService` then builds the JSON payload
++# of the event -- a full REST serialization of the record and its associations --
++# *before* looking up the webhooks it has to be delivered to. Virtually no spec
++# registers a webhook, so nearly every record we fabricate used to pay for a
++# serialization whose result was thrown away right after (~16% of the
++# `spec/requests` runtime, and a large chunk of `spec/models` as well).
++#
++# Bailing out when the instance has no webhook at all is behavior preserving:
++# `WebhookService#webhooks_for_event` would return an empty list and no
++# `Webhooks::DeliveryWorker` would be enqueued. Specs registering a webhook (see
++# `spec/services/webhook_service_spec.rb` or `spec/models/webhook_spec.rb`) still
++# exercise the whole code path.
++module TriggerWebhookWorkerSkipWithoutWebhooks
++  def perform(...)
++    super if Webhook.exists?
++  end
++end
++
++TriggerWebhookWorker.prepend(TriggerWebhookWorkerSkipWithoutWebhooks)

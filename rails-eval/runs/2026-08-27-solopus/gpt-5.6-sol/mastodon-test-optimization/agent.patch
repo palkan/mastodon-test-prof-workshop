@@ -1,0 +1,487 @@
+diff --git a/docs/factory-spec-performance.md b/docs/factory-spec-performance.md
+new file mode 100644
+index 0000000000..7746c9d546
+--- /dev/null
++++ b/docs/factory-spec-performance.md
+@@ -0,0 +1,69 @@
++# Model and request factory performance
++
++## Reproducing the profile
++
++FactoryProf is opt-in and loads after Rails so its Fabrication adapter can see
++and patch Fabrication. Use it only on bounded model or request paths:
++
++```sh
++FPROF=1 script/benchmark_model_specs \
++  spec/models/account_spec.rb \
++  spec/models/status_spec.rb \
++  spec/models/user_spec.rb
++
++FPROF=1 script/benchmark_request_specs spec/requests/api/v1/statuses
++```
++
++The benchmark scripts fix the seed at `12345`, report slow examples, and refuse
++paths outside their respective spec types. Do not benchmark the entire suite in
++one invocation. System and streaming specs are outside this profiling scope.
++
++## August 2026 findings
++
++The high-volume fabricators had unrelated implicit side effects:
++
++- Every `:user` created two `LoginActivity` rows.
++- Every `:status` created a `Bookmark`. Since the bookmark's default account was
++  not the status author, that also created a second local account and user, and
++  the user then created two login activities.
++- The default account username and user email invoked Faker despite only
++  requiring valid unique values.
++
++These defaults made a status factory create a large graph whose login history
++and bookmark were irrelevant to nearly all examples. Tests that exercise those
++features already use the dedicated `:login_activity` and `:bookmark`
++fabricators explicitly. The implicit callbacks were removed, while all
++fabricator names and spec call sites remain unchanged. High-volume identity
++fields now use deterministic Fabrication sequences.
++
++## Measurements
++
++RSpec execution time excludes Rails boot. Measurements used seed `12345` and
++identical paths before and after the factory changes.
++
++| Sample | Examples | Before | After | Change |
++| --- | ---: | ---: | ---: | ---: |
++| Core models (`account`, `status`, `user`) | 256 | 7.41s | 5.95s | -19.7% |
++| API v1 status requests | 75 | 5.19s | 3.67s | -29.3% |
++| Combined samples | 331 | 12.60s | 9.62s | -23.7% |
++
++A post-change FactoryProf run over the core model sample recorded 514 factory
++calls taking 3.97s of 5.88s total process execution. The API v1 status request
++sample recorded 339 calls taking 1.85s of 3.84s. This leaves account/status
++creation as a useful future profiling target, but those remaining records are
++part of the requested object graphs rather than unrelated factory history.
++
++## Validation
++
++Validation was performed directory by directory, never as a whole-suite run:
++
++- All 1,795 model examples passed: each nested `spec/models` directory and the
++  root model files were separate runs.
++- All 1,877 request examples passed: each immediate `spec/requests` directory
++  and the root request files were separate runs.
++- A sequence smoke test created 100 users with valid unique identities and no
++  implicit login activities.
++- Focused bookmark, login activity, and account cleanup behavior passed.
++- RuboCop reported no offenses in all changed Ruby files.
++
++System and streaming specs were not run or modified.
+diff --git a/docs/model-spec-performance.md b/docs/model-spec-performance.md
+new file mode 100644
+index 0000000000..0b6ae81ff2
+--- /dev/null
++++ b/docs/model-spec-performance.md
+@@ -0,0 +1,39 @@
++# Model spec performance
++
++## Reproducing the benchmark
++
++Use `script/benchmark_model_specs` with one or more paths under `spec/models`.
++It fixes the default seed at `12345`, enables RSpec's slow-example profile, and
++refuses paths outside model specs. For example:
++
++```sh
++script/benchmark_model_specs \
++  spec/models/account_spec.rb \
++  spec/models/status_spec.rb \
++  spec/models/user_spec.rb
++
++script/benchmark_model_specs spec/models/concerns
++```
++
++Override `RSPEC_SEED` or `RSPEC_PROFILE_EXAMPLES` when needed.
++
++## August 2026 baseline and result
++
++Measurements below are RSpec execution time (excluding Rails boot), collected
++sequentially with seed `12345`. Factories were intentionally left unchanged.
++
++| Sample | Examples | All jobs inline | Model jobs fake by default | Change |
++| --- | ---: | ---: | ---: | ---: |
++| Core (`account`, `status`, `user`) | 256 | 11.13s | 7.10s | -36.2% |
++| Model concerns | 219 | 17.73s | 13.60s | -23.3% |
++| Combined | 475 | 28.86s | 20.70s | -28.3% |
++
++The common issue was the global RSpec hook forcing Sidekiq inline for every
++example. Model callbacks enqueue many jobs, so ordinary persistence setup also
++ran unrelated application work. Model specs now use Sidekiq's fake test mode by
++default. Specs that intentionally assert a downstream job side effect use the
++`:inline_jobs` metadata; other spec types retain the previous inline behavior.
++
++Validation was performed in bounded chunks over all files below `spec/models`,
++including each nested directory separately. System, streaming, request, and
++factory specs were not changed or included.
+diff --git a/docs/request-spec-performance.md b/docs/request-spec-performance.md
+new file mode 100644
+index 0000000000..8b4a0d62c7
+--- /dev/null
++++ b/docs/request-spec-performance.md
+@@ -0,0 +1,49 @@
++# Request spec performance
++
++## Reproducing the benchmark
++
++Use `script/benchmark_request_specs` with one or more paths below
++`spec/requests`. It fixes the default seed at `12345`, enables RSpec's
++slow-example profile, and refuses paths outside request specs:
++
++```sh
++script/benchmark_request_specs spec/requests/api/v1
++script/benchmark_request_specs spec/requests/activitypub
++```
++
++Override `RSPEC_SEED` or `RSPEC_PROFILE_EXAMPLES` when needed. Run large suites
++by request directory; do not include system or streaming specs.
++
++## August 2026 profile and result
++
++RSpec execution time excludes Rails boot. Factories were intentionally left
++unchanged.
++
++| Sample | Examples | Baseline | Optimized | Change |
++| --- | ---: | ---: | ---: | ---: |
++| API v1 | 916 | 59.34s | 45.76s | -22.9% |
++| Accounts/statuses/admin/ActivityPub | 402 | 42.39s | 31.32s | -26.1% |
++
++The main common issue was Sidekiq's global inline test mode. Request setup and
++controller actions synchronously performed federation, fan-out, notification,
++and delivery jobs unrelated to most HTTP assertions. Request specs now use fake
++jobs by default. Worker-driven request specs opt back into `:inline_jobs`; this
++is intentionally limited to notifications, conversations, home timelines,
++admin action mail, report mail, and unfavourite behavior that immediately
++asserts a removal worker's database effect.
++
++The global Redis cleanup also used `KEYS` followed by `DEL` after every example.
++Since it already erased the complete test database, `FLUSHDB` provides identical
++isolation in one constant-time command without returning and allocating the
++entire key set.
++
++Validation was performed with seed `12345` in bounded groups: API v1, API v2,
++FASP, API web, API v1 alpha, every non-API nested request directory, and all 40
++root request files. This covered 1,875 passing request examples. System and
++streaming specs were excluded by design.
++
++The next visible request-specific hotspot is `spec/requests/cache_spec.rb`
++(roughly 21 seconds for 258 generated examples). It deliberately repeats each
++request to independently test cache properties and, for signed-in cases, makes
++an extra request to materialize the session cookie. Optimizing it safely likely
++requires restructuring examples, so it was left unchanged in this phase.
+diff --git a/script/benchmark_model_specs b/script/benchmark_model_specs
+new file mode 100755
+index 0000000000..18ce8b39fb
+--- /dev/null
++++ b/script/benchmark_model_specs
+@@ -0,0 +1,21 @@
++#!/bin/sh
++# Reproducible, model-only benchmark. Pass one or more paths below spec/models.
++# Deliberately refuses other spec types and defaults to a small representative set.
++set -eu
++
++if [ "$#" -eq 0 ]; then
++  set -- \
++    spec/models/account_spec.rb \
++    spec/models/status_spec.rb \
++    spec/models/user_spec.rb
++fi
++
++for path do
++  case "$path" in
++    spec/models|spec/models/*) ;;
++    *) echo "Refusing non-model spec path: $path" >&2; exit 2 ;;
++  esac
++done
++
++export RAILS_ENV=test
++exec bundle exec rspec --seed "${RSPEC_SEED:-12345}" --profile "${RSPEC_PROFILE_EXAMPLES:-10}" "$@"
+diff --git a/script/benchmark_request_specs b/script/benchmark_request_specs
+new file mode 100755
+index 0000000000..fd6a33e6a3
+--- /dev/null
++++ b/script/benchmark_request_specs
+@@ -0,0 +1,18 @@
++#!/bin/sh
++# Reproducible, request-only benchmark. Pass one or more paths below spec/requests.
++# Refuses other spec types so system and streaming specs cannot be included accidentally.
++set -eu
++
++if [ "$#" -eq 0 ]; then
++  set -- spec/requests/api/v1/accounts_spec.rb
++fi
++
++for path do
++  case "$path" in
++    spec/requests|spec/requests/*) ;;
++    *) echo "Refusing non-request spec path: $path" >&2; exit 2 ;;
++  esac
++done
++
++export RAILS_ENV=test
++exec bundle exec rspec --seed "${RSPEC_SEED:-12345}" --profile "${RSPEC_PROFILE_EXAMPLES:-10}" "$@"
+diff --git a/spec/fabricators/account_fabricator.rb b/spec/fabricators/account_fabricator.rb
+index 6a5218cee9..ae5327870d 100644
+--- a/spec/fabricators/account_fabricator.rb
++++ b/spec/fabricators/account_fabricator.rb
+@@ -4,7 +4,7 @@ require_relative '../support/signing_keys_helpers'
+ 
+ Fabricator(:account) do
+   transient :suspended, :silenced, :legacy_keypair, :requested_deletion
+-  username              { sequence(:username) { |i| "#{Faker::Internet.user_name(separators: %w(_))}#{i}" } }
++  username              { sequence(:username) { |i| "fabricated_user#{i}" } }
+   last_webfingered_at   { Time.now.utc }
+   public_key            { |attrs| attrs[:legacy_keypair] ? SigningKeysHelpers::PUBLIC_RSA_TEST_KEY : '' }
+   private_key           { |attrs| attrs[:legacy_keypair] && attrs[:domain].nil? ? SigningKeysHelpers::PRIVATE_RSA_TEST_KEY : nil }
+diff --git a/spec/fabricators/status_fabricator.rb b/spec/fabricators/status_fabricator.rb
+index d38eec8603..7ce905fe00 100644
+--- a/spec/fabricators/status_fabricator.rb
++++ b/spec/fabricators/status_fabricator.rb
+@@ -1,14 +1,11 @@
+ # frozen_string_literal: true
+ 
+ Fabricator(:status) do
++  # Keep interactions such as bookmarks opt-in; they create another account graph.
+   account
+   text 'Lorem ipsum dolor sit amet'
+ 
+   after_build do |status|
+     status.uri = Faker::Internet.device_token if !status.account.local? && status.uri.nil?
+   end
+-
+-  after_create do |status|
+-    Fabricate(:bookmark, status: status)
+-  end
+ end
+diff --git a/spec/fabricators/user_fabricator.rb b/spec/fabricators/user_fabricator.rb
+index c82a3c918e..d7e6e48128 100644
+--- a/spec/fabricators/user_fabricator.rb
++++ b/spec/fabricators/user_fabricator.rb
+@@ -1,21 +1,18 @@
+ # frozen_string_literal: true
+ 
+ Fabricator(:user) do
++  # Keep associated history opt-in; most specs only need the user and account.
+   account do |attrs|
+     Fabricate.build(
+       :account,
+       attrs.fetch(:account_attributes, {}).merge(user: nil)
+     )
+   end
+-  email        { sequence(:email) { |i| "#{i}#{Faker::Internet.email}" } }
++  email        { sequence(:email) { |i| "user#{i}@example.com" } }
+   password     '123456789'
+   confirmed_at { Time.zone.now }
+   current_sign_in_at { Time.zone.now }
+   agreement true
+-
+-  after_create do |user|
+-    2.times { Fabricate(:login_activity, user: user) }
+-  end
+ end
+ 
+ Fabricator(:admin_user, from: :user) do
+diff --git a/spec/models/admin/account_action_spec.rb b/spec/models/admin/account_action_spec.rb
+index 5339084ec4..742a2f9249 100644
+--- a/spec/models/admin/account_action_spec.rb
++++ b/spec/models/admin/account_action_spec.rb
+@@ -87,7 +87,7 @@ RSpec.describe Admin::AccountAction do
+       end
+     end
+ 
+-    it 'sends email to target account user' do
++    it 'sends email to target account user', :inline_jobs do
+       emails = capture_emails { subject }
+ 
+       expect(emails).to contain_exactly(
+diff --git a/spec/models/email_subscription_spec.rb b/spec/models/email_subscription_spec.rb
+index 3730b5c8a4..bcf22d58e6 100644
+--- a/spec/models/email_subscription_spec.rb
++++ b/spec/models/email_subscription_spec.rb
+@@ -24,7 +24,7 @@ RSpec.describe EmailSubscription do
+     end
+   end
+ 
+-  describe 'Callbacks' do
++  describe 'Callbacks', :inline_jobs do
+     subject { Fabricate(:email_subscription) }
+ 
+     it 'generates token and delivers confirmation email' do
+diff --git a/spec/models/user_spec.rb b/spec/models/user_spec.rb
+index 3a1964b698..0ec682f54e 100644
+--- a/spec/models/user_spec.rb
++++ b/spec/models/user_spec.rb
+@@ -493,7 +493,7 @@ RSpec.describe User do
+     end
+   end
+ 
+-  describe '#mark_email_as_confirmed!' do
++  describe '#mark_email_as_confirmed!', :inline_jobs do
+     subject { user.mark_email_as_confirmed! }
+ 
+     let!(:user) { Fabricate(:user, confirmed_at: confirmed_at) }
+diff --git a/spec/rails_helper.rb b/spec/rails_helper.rb
+index dc330809a1..0e328e8219 100644
+--- a/spec/rails_helper.rb
++++ b/spec/rails_helper.rb
+@@ -21,6 +21,14 @@ require 'pundit/rspec'
+ 
+ Rails.root.glob('spec/support/**/*.rb').each { |f| require f }
+ 
++# Opt-in factory profiling for bounded runs (for example, `FPROF=1
++# script/benchmark_model_specs spec/models/account_spec.rb`). TestProf must be
++# loaded after Rails so its Fabrication adapter can patch the loaded library.
++if ENV['FPROF']
++  require 'test_prof'
++  require 'test_prof/factory_prof'
++end
++
+ ActiveRecord::Migration.maintain_test_schema!
+ WebMock.disable_net_connect!(
+   allow_localhost: true,
+@@ -105,8 +113,14 @@ RSpec.configure do |config|
+     self.use_transactional_tests = true
+   end
+ 
+-  config.before do
+-    Sidekiq.testing!(:inline)
++  config.before do |example|
++    # Most model and request specs exercise persistence or HTTP behavior, not
++    # the jobs their callbacks/actions enqueue. Running every job inline makes
++    # routine setup and requests perform unrelated application work. Specs that
++    # intentionally verify a job's downstream side effects opt back in.
++    fake_jobs = example.metadata[:type].in?([:model, :request]) && !example.metadata[:inline_jobs]
++    sidekiq_mode = fake_jobs ? :fake : :inline
++    Sidekiq.testing!(sidekiq_mode)
+   end
+ 
+   config.before :each, type: :cli do
+@@ -130,7 +144,10 @@ RSpec.configure do |config|
+ 
+   config.after do
+     Rails.cache.clear
+-    redis.del(redis.keys)
++    # This database is test-only and was already fully cleared via KEYS + DEL.
++    # FLUSHDB provides the same isolation in one command without materializing
++    # every key in Redis and Ruby after each example.
++    redis.flushdb
+   end
+ 
+   # Assign types based on dir name for non-inferred types
+diff --git a/spec/requests/api/v1/admin/account_actions_spec.rb b/spec/requests/api/v1/admin/account_actions_spec.rb
+index b67db3dc16..230805193a 100644
+--- a/spec/requests/api/v1/admin/account_actions_spec.rb
++++ b/spec/requests/api/v1/admin/account_actions_spec.rb
+@@ -2,7 +2,7 @@
+ 
+ require 'rails_helper'
+ 
+-RSpec.describe 'Account actions' do
++RSpec.describe 'Account actions', :inline_jobs do
+   include_context 'with API authentication', user_fabricator: :admin_user, oauth_scopes: 'admin:write admin:write:accounts'
+ 
+   shared_examples 'a successful notification delivery' do
+diff --git a/spec/requests/api/v1/conversations_spec.rb b/spec/requests/api/v1/conversations_spec.rb
+index aed3645998..a395bf8e5b 100644
+--- a/spec/requests/api/v1/conversations_spec.rb
++++ b/spec/requests/api/v1/conversations_spec.rb
+@@ -2,7 +2,7 @@
+ 
+ require 'rails_helper'
+ 
+-RSpec.describe 'API V1 Conversations' do
++RSpec.describe 'API V1 Conversations', :inline_jobs do
+   include_context 'with API authentication', oauth_scopes: 'read:statuses'
+ 
+   let!(:user) { Fabricate(:user, account_attributes: { username: 'alice' }) }
+diff --git a/spec/requests/api/v1/notifications_spec.rb b/spec/requests/api/v1/notifications_spec.rb
+index 15183d2a8b..dfc6020ccc 100644
+--- a/spec/requests/api/v1/notifications_spec.rb
++++ b/spec/requests/api/v1/notifications_spec.rb
+@@ -2,7 +2,7 @@
+ 
+ require 'rails_helper'
+ 
+-RSpec.describe 'Notifications' do
++RSpec.describe 'Notifications', :inline_jobs do
+   include_context 'with API authentication', oauth_scopes: 'read:notifications write:notifications'
+ 
+   let(:user)    { Fabricate(:user, account_attributes: { username: 'alice' }) }
+diff --git a/spec/requests/api/v1/reports_spec.rb b/spec/requests/api/v1/reports_spec.rb
+index 52cd58136d..46b063ab0e 100644
+--- a/spec/requests/api/v1/reports_spec.rb
++++ b/spec/requests/api/v1/reports_spec.rb
+@@ -32,7 +32,7 @@ RSpec.describe 'Reports' do
+ 
+     it_behaves_like 'forbidden for wrong scope', 'read read:reports'
+ 
+-    it 'creates a report', :aggregate_failures do
++    it 'creates a report', :aggregate_failures, :inline_jobs do
+       emails = capture_emails { subject }
+ 
+       expect(response).to have_http_status(200)
+diff --git a/spec/requests/api/v1/statuses/favourites_spec.rb b/spec/requests/api/v1/statuses/favourites_spec.rb
+index 0e58f3ef6b..b66b85643f 100644
+--- a/spec/requests/api/v1/statuses/favourites_spec.rb
++++ b/spec/requests/api/v1/statuses/favourites_spec.rb
+@@ -83,7 +83,7 @@ RSpec.describe 'Favourites' do
+ 
+     it_behaves_like 'forbidden for wrong scope', 'read read:favourites'
+ 
+-    context 'with public status' do
++    context 'with public status', :inline_jobs do
+       before do
+         FavouriteService.new.call(user.account, status)
+       end
+@@ -103,7 +103,7 @@ RSpec.describe 'Favourites' do
+       end
+     end
+ 
+-    context 'when the requesting user was blocked by the status author' do
++    context 'when the requesting user was blocked by the status author', :inline_jobs do
+       before do
+         FavouriteService.new.call(user.account, status)
+         status.account.block!(user.account)
+diff --git a/spec/requests/api/v1/timelines/home_spec.rb b/spec/requests/api/v1/timelines/home_spec.rb
+index 6ff0a51543..89b5f392c5 100644
+--- a/spec/requests/api/v1/timelines/home_spec.rb
++++ b/spec/requests/api/v1/timelines/home_spec.rb
+@@ -2,7 +2,7 @@
+ 
+ require 'rails_helper'
+ 
+-RSpec.describe 'Home' do
++RSpec.describe 'Home', :inline_jobs do
+   let(:user)    { Fabricate(:user) }
+   let(:scopes)  { 'read:statuses' }
+   let(:token)   { Fabricate(:accessible_access_token, resource_owner_id: user.id, scopes: scopes) }
+diff --git a/spec/requests/api/v2/notifications/accounts_spec.rb b/spec/requests/api/v2/notifications/accounts_spec.rb
+index ddc9c5d83b..91490bd83e 100644
+--- a/spec/requests/api/v2/notifications/accounts_spec.rb
++++ b/spec/requests/api/v2/notifications/accounts_spec.rb
+@@ -2,7 +2,7 @@
+ 
+ require 'rails_helper'
+ 
+-RSpec.describe 'Accounts in grouped notifications' do
++RSpec.describe 'Accounts in grouped notifications', :inline_jobs do
+   let(:user)    { Fabricate(:user, account_attributes: { username: 'alice' }) }
+   let(:token)   { Fabricate(:accessible_access_token, resource_owner_id: user.id, scopes: scopes) }
+   let(:scopes)  { 'read:notifications write:notifications' }
+diff --git a/spec/requests/api/v2/notifications_spec.rb b/spec/requests/api/v2/notifications_spec.rb
+index 23e617fb65..90112c14c8 100644
+--- a/spec/requests/api/v2/notifications_spec.rb
++++ b/spec/requests/api/v2/notifications_spec.rb
+@@ -2,7 +2,7 @@
+ 
+ require 'rails_helper'
+ 
+-RSpec.describe 'Notifications' do
++RSpec.describe 'Notifications', :inline_jobs do
+   include_context 'with API authentication', oauth_scopes: 'read:notifications write:notifications'
+ 
+   let(:user)    { Fabricate(:user, account_attributes: { username: 'alice' }) }

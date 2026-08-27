@@ -1,0 +1,105 @@
+{
+  "trial": "mastodon-test-optimization__4urCVM5",
+  "task": "mastodon-test-optimization",
+  "agent": "miniswen",
+  "model": "openrouter/openai/gpt-5.6-sol",
+  "index": 1,
+  "revision": {
+    "commit": "a0bddcb042cc931b2e184a195a70bdf090419613",
+    "dirty": false
+  },
+  "lemans_version": "1.0.0",
+  "tags": [
+    "rails",
+    "rspec",
+    "test-optimization",
+    "multi-step"
+  ],
+  "metadata": {
+    "merged_from_steps": 3,
+    "per_step_usage": [
+      {
+        "step": 1,
+        "steps": 24,
+        "cost_usd": 0.4035,
+        "input_tokens": 826760,
+        "output_tokens": 11109,
+        "cached_tokens": 771517,
+        "duration": null,
+        "over_step_limit": false,
+        "over_cost_limit": false
+      },
+      {
+        "step": 2,
+        "steps": 24,
+        "cost_usd": 0.4438,
+        "input_tokens": 858046,
+        "output_tokens": 12663,
+        "cached_tokens": 794758,
+        "duration": 674.0,
+        "over_step_limit": false,
+        "over_cost_limit": false
+      },
+      {
+        "step": 3,
+        "steps": 17,
+        "cost_usd": 0.3182,
+        "input_tokens": 520440,
+        "output_tokens": 10029,
+        "cached_tokens": 470939,
+        "duration": 464.0,
+        "over_step_limit": false,
+        "over_cost_limit": false
+      }
+    ],
+    "default_limits": {
+      "steps": 100,
+      "cost_usd": 5.0
+    },
+    "over_default_limits": {
+      "steps": false,
+      "cost_usd": false,
+      "merged_steps": false,
+      "merged_cost_usd": false,
+      "note": "runs executed without limits; per-step flags computed post-hoc against defaults (100 steps, $5); merged_* flags compare 3-step totals"
+    },
+    "verification": {
+      "speedup_ratio": 1.784,
+      "speed_grade": 9,
+      "speed_grade_formula": "round(min(old/new, 2) * 5) + (2 if old/new > 2.5)",
+      "features_score": 4,
+      "total_points": 13,
+      "max_points": 20,
+      "reward": 0.65
+    },
+    "timestamps_note": "started_at/finished_at from step commit times; step-1 working time not included (first commit marks step-1 end)"
+  },
+  "phases": [
+    {
+      "name": "agent",
+      "started_at": "2026-08-27T17:05:26.000000Z",
+      "finished_at": "2026-08-27T17:24:24.000000Z"
+    }
+  ],
+  "reward": 0.65,
+  "outcome": {
+    "name": "completed",
+    "scored": true
+  },
+  "usage": {
+    "input_tokens": 2205246,
+    "output_tokens": 33801,
+    "cached_tokens": 2037214,
+    "steps": 65,
+    "cost_usd": 1.165435,
+    "cost_source": {
+      "name": "model_registry",
+      "model": "openrouter/openai/gpt-5.6-sol",
+      "priced_as": "openrouter/openai/gpt-5.6-sol",
+      "registry": "ruby_llm 1.16.0 (registry 2026-07-21T02:33:57Z)"
+    }
+  },
+  "duration": 1138.0,
+  "started_at": "2026-08-27T17:05:26Z",
+  "finished_at": "2026-08-27T17:24:24Z"
+}

@@ -1,0 +1,341 @@
+{
+ "gpt-5.6-luna": {
+  "steps": {
+   "1": {
+    "total_model_steps": 24,
+    "ttfe_step": 12,
+    "ttfe_ratio": 0.5,
+    "files_read_before_first_edit": 4,
+    "blast_radius_modified_files": 2,
+    "modified_files": [
+     "docs/model-spec-performance.md",
+     "spec/rails_helper.rb"
+    ],
+    "first_edit_command_excerpt": "python3 - <<'PY' ... p='spec/rails_helper.rb'; replaces config.after Rails.cache.clear/redis.del block ... open(p,'w').write(s)"
+   },
+   "2": {
+    "total_model_steps": 15,
+    "ttfe_step": 5,
+    "ttfe_ratio": 0.33,
+    "files_read_before_first_edit": 6,
+    "blast_radius_modified_files": 2,
+    "modified_files": [
+     "docs/request-spec-performance.md",
+     "spec/rails_helper.rb"
+    ],
+    "first_edit_command_excerpt": "cp spec/rails_helper.rb /tmp/rails_helper.before && python3 - <<'PY' ... edits redis.flushdb condition in spec/rails_helper.rb"
+   },
+   "3": {
+    "total_model_steps": 19,
+    "ttfe_step": 12,
+    "ttfe_ratio": 0.63,
+    "files_read_before_first_edit": 3,
+    "blast_radius_modified_files": 4,
+    "modified_files": [
+     "docs/factory-spec-performance.md",
+     "spec/fabricators/account_fabricator.rb",
+     "spec/fabricators/status_fabricator.rb",
+     "spec/fabricators/user_fabricator.rb"
+    ],
+    "first_edit_command_excerpt": "python3 - <<'PY' ... removes after_create Fabricate(:bookmark) from spec/fabricators/status_fabricator.rb and login_activity hook from user_fabricator.rb"
+   }
+  }
+ },
+ "grok-4.6": {
+  "steps": {
+   "1": {
+    "total_model_steps": 39,
+    "ttfe_step": 22,
+    "ttfe_ratio": 0.56,
+    "files_read_before_first_edit": 28,
+    "blast_radius_modified_files": 5,
+    "modified_files": [
+     "docs/spec_performance.md",
+     "spec/models/admin/account_action_spec.rb",
+     "spec/models/email_subscription_spec.rb",
+     "spec/models/user_spec.rb",
+     "spec/rails_helper.rb"
+    ],
+    "first_edit_command_excerpt": "sed -i \"s/Sidekiq.testing!(:inline)/Sidekiq.testing!(:fake)/\" spec/rails_helper.rb (A/B experiment, kept)"
+   },
+   "2": {
+    "total_model_steps": 44,
+    "ttfe_step": 27,
+    "ttfe_ratio": 0.61,
+    "files_read_before_first_edit": 39,
+    "blast_radius_modified_files": 16,
+    "modified_files": [
+     "app/services/webhook_service.rb",
+     "config/environments/test.rb",
+     "config/initializers/httplog.rb",
+     "docs/spec_performance.md",
+     "spec/config/initializers/rack/attack_spec.rb",
+     "spec/rails_helper.rb",
+     "spec/requests/admin/confirmations_spec.rb",
+     "spec/requests/api/v1/admin/account_actions_spec.rb",
+     "spec/requests/api/v1/conversations_spec.rb",
+     "spec/requests/api/v1/notifications_spec.rb",
+     "spec/requests/api/v1/reports_spec.rb",
+     "spec/requests/api/v1/statuses/favourites_spec.rb",
+     "spec/requests/api/v1/timelines/home_spec.rb",
+     "spec/requests/api/v2/notifications/accounts_spec.rb",
+     "spec/requests/api/v2/notifications_spec.rb",
+     "spec/requests/cache_spec.rb"
+    ],
+    "first_edit_command_excerpt": "python3 <<'PY' ... edits config/environments/test.rb (log_level fatal, Rack::Attack.enabled=false), httplog, rails_helper, webhook_service stub, rack/attack_spec"
+   },
+   "3": {
+    "total_model_steps": 55,
+    "ttfe_step": 31,
+    "ttfe_ratio": 0.56,
+    "files_read_before_first_edit": 64,
+    "blast_radius_modified_files": 6,
+    "modified_files": [
+     "docs/spec_performance.md",
+     "spec/fabricators/notification_request_fabricator.rb",
+     "spec/fabricators/poll_fabricator.rb",
+     "spec/fabricators/status_fabricator.rb",
+     "spec/fabricators/status_trend_fabricator.rb",
+     "spec/fabricators/user_fabricator.rb"
+    ],
+    "first_edit_command_excerpt": "cat <<'EOF' > spec/fabricators/poll_fabricator.rb (rewrites poll/status/status_trend/user fabricators)"
+   }
+  }
+ },
+ "kimi-k3": {
+  "steps": {
+   "1": {
+    "total_model_steps": 88,
+    "ttfe_step": 15,
+    "ttfe_ratio": 0.17,
+    "files_read_before_first_edit": 12,
+    "blast_radius_modified_files": 16,
+    "modified_files": [
+     "config/environments/test.rb",
+     "docs/rspec_optimization_notes.md",
+     "spec/models/admin/account_action_spec.rb",
+     "spec/models/email_subscription_spec.rb",
+     "spec/models/user_spec.rb",
+     "spec/rails_helper.rb",
+     "spec/rails_helper.rb.orig",
+     "tmp/insert.txt",
+     "tmp/logsize_before.txt",
+     "tmp/patch_rh.rb",
+     "tmp/prof_db.rb",
+     "tmp/prof_fab.rb",
+     "tmp/prof_hooks.rb",
+     "tmp/prof_redis.rb",
+     "tmp/prof_stack.rb",
+     "tmp/stackprof.dump"
+    ],
+    "first_edit_command_excerpt": "mkdir -p tmp && cat > tmp/prof_hooks.rb <<'EOF' (hook-profiling script in workspace tmp/)"
+   },
+   "2": {
+    "total_model_steps": 121,
+    "ttfe_step": 16,
+    "ttfe_ratio": 0.13,
+    "files_read_before_first_edit": 8,
+    "blast_radius_modified_files": 24,
+    "modified_files": [
+     "docs/rspec_optimization_notes.md",
+     "spec/rails_helper.rb",
+     "spec/requests/api/v1/admin/account_actions_spec.rb",
+     "spec/requests/api/v1/conversations_spec.rb",
+     "spec/requests/api/v1/notifications_spec.rb",
+     "spec/requests/api/v1/reports_spec.rb",
+     "spec/requests/api/v1/statuses/favourites_spec.rb",
+     "spec/requests/api/v1/timelines/home_spec.rb",
+     "spec/requests/api/v2/notifications/accounts_spec.rb",
+     "spec/requests/api/v2/notifications_spec.rb",
+     "tmp/final_models.log",
+     "tmp/final_requests.log",
+     "tmp/profile/fake_full.log",
+     "tmp/profile/fake_subset.log",
+     "tmp/profile/group_timing.rb",
+     "tmp/profile/groups.log",
+     "tmp/profile/idea1_full.log",
+     "tmp/profile/idea2_full.log",
+     "tmp/profile/profile_subset.sh",
+     "tmp/profile/run_requests.sh",
+     "tmp/profile/sql.log",
+     "tmp/profile/stackprof.log",
+     "tmp/profile/stackprof2.log",
+     "tmp/profile/stackprof_boot.rb"
+    ],
+    "first_edit_command_excerpt": "mkdir -p tmp/profile && cat > tmp/profile/run_requests.sh <<'EOF' (benchmark harness in workspace tmp/)"
+   },
+   "3": {
+    "total_model_steps": 155,
+    "ttfe_step": 34,
+    "ttfe_ratio": 0.22,
+    "files_read_before_first_edit": 22,
+    "blast_radius_modified_files": 6,
+    "modified_files": [
+     "docs/rspec_optimization_notes.md",
+     "spec/fabricators/account_fabricator.rb",
+     "spec/fabricators/status_fabricator.rb",
+     "spec/fabricators/user_fabricator.rb",
+     "spec/support/fabricate_helpers.rb",
+     "spec/support/zz_fprof_test.rb"
+    ],
+    "first_edit_command_excerpt": "cat > spec/support/zz_fprof_test.rb <<'EOF' ... rm spec/support/zz_fprof_test.rb (write-probe; first durable edit of fabricators at step 61)"
+   }
+  }
+ },
+ "gpt-5.6-sol": {
+  "steps": {
+   "1": {
+    "total_model_steps": 24,
+    "ttfe_step": 4,
+    "ttfe_ratio": 0.17,
+    "files_read_before_first_edit": 3,
+    "blast_radius_modified_files": 6,
+    "modified_files": [
+     "docs/model-spec-performance.md",
+     "script/benchmark_model_specs",
+     "spec/models/admin/account_action_spec.rb",
+     "spec/models/email_subscription_spec.rb",
+     "spec/models/user_spec.rb",
+     "spec/rails_helper.rb"
+    ],
+    "first_edit_command_excerpt": "mkdir -p script docs && cat > script/benchmark_model_specs <<'EOF' ... chmod +x (committed benchmark script)"
+   },
+   "2": {
+    "total_model_steps": 24,
+    "ttfe_step": 4,
+    "ttfe_ratio": 0.17,
+    "files_read_before_first_edit": 3,
+    "blast_radius_modified_files": 27,
+    "modified_files": [
+     "docs/request-spec-performance.md",
+     "script/benchmark_request_specs",
+     "spec/rails_helper.rb",
+     "spec/requests/api/v1/admin/account_actions_spec.rb",
+     "spec/requests/api/v1/conversations_spec.rb",
+     "spec/requests/api/v1/notifications_spec.rb",
+     "spec/requests/api/v1/reports_spec.rb",
+     "spec/requests/api/v1/statuses/favourites_spec.rb",
+     "spec/requests/api/v1/timelines/home_spec.rb",
+     "spec/requests/api/v2/notifications/accounts_spec.rb",
+     "spec/requests/api/v2/notifications_spec.rb",
+     "tmp/request-profile/api-v1-baseline.txt",
+     "tmp/request-profile/api-v1-full.txt",
+     "tmp/request-profile/api-v1-passing.txt",
+     "tmp/request-profile/api-v2-passing.txt",
+     "tmp/request-profile/api-validation.txt",
+     "tmp/request-profile/baseline.txt",
+     "tmp/request-profile/failure-rerun.txt",
+     "tmp/request-profile/fake-jobs.txt",
+     "tmp/request-profile/favourites-final.txt",
+     "tmp/request-profile/model-regression.txt",
+     "tmp/request-profile/non-api-dirs.txt",
+     "tmp/request-profile/optimized-sample.txt",
+     "tmp/request-profile/rails_helper.before_requests",
+     "tmp/request-profile/rails_helper.optimized",
+     "tmp/request-profile/root-files.txt",
+     "tmp/request-profile/rubocop.txt"
+    ],
+    "first_edit_command_excerpt": "cat > script/benchmark_request_specs <<'EOF' ... chmod +x (committed benchmark script)"
+   },
+   "3": {
+    "total_model_steps": 17,
+    "ttfe_step": 5,
+    "ttfe_ratio": 0.29,
+    "files_read_before_first_edit": 7,
+    "blast_radius_modified_files": 20,
+    "modified_files": [
+     "docs/factory-spec-performance.md",
+     "spec/fabricators/account_fabricator.rb",
+     "spec/fabricators/status_fabricator.rb",
+     "spec/fabricators/user_fabricator.rb",
+     "spec/rails_helper.rb",
+     "tmp/benchmark-core-model-after.txt",
+     "tmp/benchmark-core-model-before.txt",
+     "tmp/benchmark-status-requests-after.txt",
+     "tmp/benchmark-status-requests-after2.txt",
+     "tmp/benchmark-status-requests-before.txt",
+     "tmp/factory-sequence-smoke.txt",
+     "tmp/final-fprof-smoke.txt",
+     "tmp/focused-factory-after.txt",
+     "tmp/focused-factory-after2.txt",
+     "tmp/fprof-model-after.txt",
+     "tmp/fprof-model-before.txt",
+     "tmp/fprof-request-before.txt",
+     "tmp/fprof-status-requests-after.txt",
+     "tmp/model-validation.txt",
+     "tmp/request-validation.txt"
+    ],
+    "first_edit_command_excerpt": "script/benchmark_model_specs ... > tmp/fprof-model-before.txt (baseline log into workspace tmp/; first source edit at step 8: fabricator + rails_helper rewrite)"
+   }
+  }
+ },
+ "claude-opus-5": {
+  "steps": {
+   "1": {
+    "total_model_steps": 72,
+    "ttfe_step": 23,
+    "ttfe_ratio": 0.32,
+    "files_read_before_first_edit": 15,
+    "blast_radius_modified_files": 8,
+    "modified_files": [
+     "config/environments/test.rb",
+     "docs/TESTING_PERFORMANCE.md",
+     "log/test.log",
+     "spec/models/concerns/status/fetch_replies_concern_spec.rb",
+     "spec/spec_helper.rb",
+     "spec/support/password_digests.rb",
+     "spec/support/profiling.rb",
+     "spec/support/zz_test_prof.rb"
+    ],
+    "first_edit_command_excerpt": "cat > spec/support/zz_test_prof.rb <<'EOF' (require 'test-prof' if ENV['PROFILE'] shim)"
+   },
+   "2": {
+    "total_model_steps": 94,
+    "ttfe_step": 35,
+    "ttfe_ratio": 0.37,
+    "files_read_before_first_edit": 17,
+    "blast_radius_modified_files": 8,
+    "modified_files": [
+     "docs/TESTING_PERFORMANCE.md",
+     "spec/rails_helper.rb",
+     "spec/requests/cache_spec.rb",
+     "spec/requests/signature_verification_spec.rb",
+     "spec/requests/zzz_bench_spec.rb",
+     "spec/support/data_reuse.rb",
+     "spec/support/webhooks.rb",
+     "spec/support/zz_qcount.rb"
+    ],
+    "first_edit_command_excerpt": "cp /tmp/bench_req_spec.rb spec/requests/zzz_bench_spec.rb && rspec it (200-example overhead benchmark spec)"
+   },
+   "3": {
+    "total_model_steps": 97,
+    "ttfe_step": 17,
+    "ttfe_ratio": 0.18,
+    "files_read_before_first_edit": 33,
+    "blast_radius_modified_files": 8,
+    "modified_files": [
+     "docs/TESTING_PERFORMANCE.md",
+     "spec/fabricators/account_fabricator.rb",
+     "spec/fabricators/status_fabricator.rb",
+     "spec/fabricators/user_fabricator.rb",
+     "spec/mailers/zz_premailer_check_spec.rb",
+     "spec/support/premailer.rb",
+     "spec/support/profiling.rb",
+     "spec/support/zz_worker_prof.rb"
+    ],
+    "first_edit_command_excerpt": "python3 - <<'EOF' ... removes after_create bookmark/login_activity hooks from status_fabricator.rb and user_fabricator.rb"
+   }
+  }
+ },
+ "notes": [
+  "Step indexing: a 'model step' = one assistant/agent message that issues >=1 bash tool call, numbered 1..N in order. Some steps carry 2-3 bash commands (both formats); all commands in a message share its step index.",
+  "Workspace tmp/: kimi-k3 and gpt-5.6-sol wrote profiling scripts/benchmark logs into the repo's own tmp/ (e.g. 'mkdir -p tmp && cat > tmp/prof_hooks.rb'); per the stated definition these count as workspace modifications, which pulls their TtFE earlier and inflates blast radius relative to committed files. claude-opus-5 wrote all scratch to system /tmp instead, so its TtFE reflects genuine workspace edits.",
+  "kimi-k3.3 TtFE=34 is a write-probe (creates then immediately rm's spec/support/zz_fprof_test.rb); the first durable source edit is step 61 (fabricators).",
+  "gpt-5.6-sol.3 TtFE=5 is a benchmark log redirect into workspace tmp/; its first source-code edit is step 8 (fabricators + rails_helper).",
+  "Batch-1 backup/restore flows via /tmp were handled: cp to /tmp = not modifying; cp /tmp/x back into spec/... = modifying (e.g. gpt-5.6-luna.1 step 22, claude-opus-5.2 step 35).",
+  "Blast radius counts: temp spec/support files later rm'd (zz_*.rb, zzz_bench_spec.rb), backup copies inside the workspace (spec/rails_helper.rb.orig), and log/test.log truncation/rm (claude-opus-5.1) are included; sed-script tokens and directory targets from the parser were manually removed.",
+  "FtFE counts only individually named displays/inspections (cat/sed -n/head/tail/nl, grep with a single explicit file); explicit multi-file cats count each named file; recursive greps, find -exec sweeps, and glob loops ('for f in spec/fabricators/*.rb; do cat $f') do not count. Reads of gem sources via $(bundle show) are outside the workspace and excluded. .git and wc -l were not counted as reads; log/test.log reads were (workspace file).",
+  "Per the given definition, git commands were never counted as modifying; the only git-write candidate found (kimi-k3.3 'git stash list') was read-only, so nothing was missed.",
+  "Sanity check passed: non-tmp blast radius equals the committed count for every batch-1 and gpt-5.6-sol run (luna 2/2/4, grok 5/16/6, kimi 6/10/5+backup, sol 6/11/5) and exceeds it for claude-opus-5 (8/8/8 vs 6/6/6) due to temp zz_* helpers later deleted, plus log/test.log in run 1."
+ ]
+}

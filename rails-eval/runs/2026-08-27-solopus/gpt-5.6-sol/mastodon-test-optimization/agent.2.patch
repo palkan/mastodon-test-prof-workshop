@@ -1,0 +1,226 @@
+diff --git a/docs/request-spec-performance.md b/docs/request-spec-performance.md
+new file mode 100644
+index 0000000000..8b4a0d62c7
+--- /dev/null
++++ b/docs/request-spec-performance.md
+@@ -0,0 +1,49 @@
++# Request spec performance
++
++## Reproducing the benchmark
++
++Use `script/benchmark_request_specs` with one or more paths below
++`spec/requests`. It fixes the default seed at `12345`, enables RSpec's
++slow-example profile, and refuses paths outside request specs:
++
++```sh
++script/benchmark_request_specs spec/requests/api/v1
++script/benchmark_request_specs spec/requests/activitypub
++```
++
++Override `RSPEC_SEED` or `RSPEC_PROFILE_EXAMPLES` when needed. Run large suites
++by request directory; do not include system or streaming specs.
++
++## August 2026 profile and result
++
++RSpec execution time excludes Rails boot. Factories were intentionally left
++unchanged.
++
++| Sample | Examples | Baseline | Optimized | Change |
++| --- | ---: | ---: | ---: | ---: |
++| API v1 | 916 | 59.34s | 45.76s | -22.9% |
++| Accounts/statuses/admin/ActivityPub | 402 | 42.39s | 31.32s | -26.1% |
++
++The main common issue was Sidekiq's global inline test mode. Request setup and
++controller actions synchronously performed federation, fan-out, notification,
++and delivery jobs unrelated to most HTTP assertions. Request specs now use fake
++jobs by default. Worker-driven request specs opt back into `:inline_jobs`; this
++is intentionally limited to notifications, conversations, home timelines,
++admin action mail, report mail, and unfavourite behavior that immediately
++asserts a removal worker's database effect.
++
++The global Redis cleanup also used `KEYS` followed by `DEL` after every example.
++Since it already erased the complete test database, `FLUSHDB` provides identical
++isolation in one constant-time command without returning and allocating the
++entire key set.
++
++Validation was performed with seed `12345` in bounded groups: API v1, API v2,
++FASP, API web, API v1 alpha, every non-API nested request directory, and all 40
++root request files. This covered 1,875 passing request examples. System and
++streaming specs were excluded by design.
++
++The next visible request-specific hotspot is `spec/requests/cache_spec.rb`
++(roughly 21 seconds for 258 generated examples). It deliberately repeats each
++request to independently test cache properties and, for signed-in cases, makes
++an extra request to materialize the session cookie. Optimizing it safely likely
++requires restructuring examples, so it was left unchanged in this phase.
+diff --git a/script/benchmark_request_specs b/script/benchmark_request_specs
+new file mode 100755
+index 0000000000..fd6a33e6a3
+--- /dev/null
++++ b/script/benchmark_request_specs
+@@ -0,0 +1,18 @@
++#!/bin/sh
++# Reproducible, request-only benchmark. Pass one or more paths below spec/requests.
++# Refuses other spec types so system and streaming specs cannot be included accidentally.
++set -eu
++
++if [ "$#" -eq 0 ]; then
++  set -- spec/requests/api/v1/accounts_spec.rb
++fi
++
++for path do
++  case "$path" in
++    spec/requests|spec/requests/*) ;;
++    *) echo "Refusing non-request spec path: $path" >&2; exit 2 ;;
++  esac
++done
++
++export RAILS_ENV=test
++exec bundle exec rspec --seed "${RSPEC_SEED:-12345}" --profile "${RSPEC_PROFILE_EXAMPLES:-10}" "$@"
+diff --git a/spec/rails_helper.rb b/spec/rails_helper.rb
+index eb261a61cc..485e5eb62b 100644
+--- a/spec/rails_helper.rb
++++ b/spec/rails_helper.rb
+@@ -106,11 +106,12 @@ RSpec.configure do |config|
+   end
+ 
+   config.before do |example|
+-    # Most model specs exercise persistence and callbacks, not the jobs those
+-    # callbacks enqueue. Running every job inline makes routine model setup do
+-    # unrelated application work. Keep the existing behavior for other spec
+-    # types and let the exceptional model spec opt back in with `:inline_jobs`.
+-    sidekiq_mode = example.metadata[:type] == :model && !example.metadata[:inline_jobs] ? :fake : :inline
++    # Most model and request specs exercise persistence or HTTP behavior, not
++    # the jobs their callbacks/actions enqueue. Running every job inline makes
++    # routine setup and requests perform unrelated application work. Specs that
++    # intentionally verify a job's downstream side effects opt back in.
++    fake_jobs = example.metadata[:type].in?([:model, :request]) && !example.metadata[:inline_jobs]
++    sidekiq_mode = fake_jobs ? :fake : :inline
+     Sidekiq.testing!(sidekiq_mode)
+   end
+ 
+@@ -135,7 +136,10 @@ RSpec.configure do |config|
+ 
+   config.after do
+     Rails.cache.clear
+-    redis.del(redis.keys)
++    # This database is test-only and was already fully cleared via KEYS + DEL.
++    # FLUSHDB provides the same isolation in one command without materializing
++    # every key in Redis and Ruby after each example.
++    redis.flushdb
+   end
+ 
+   # Assign types based on dir name for non-inferred types
+diff --git a/spec/requests/api/v1/admin/account_actions_spec.rb b/spec/requests/api/v1/admin/account_actions_spec.rb
+index b67db3dc16..230805193a 100644
+--- a/spec/requests/api/v1/admin/account_actions_spec.rb
++++ b/spec/requests/api/v1/admin/account_actions_spec.rb
+@@ -2,7 +2,7 @@
+ 
+ require 'rails_helper'
+ 
+-RSpec.describe 'Account actions' do
++RSpec.describe 'Account actions', :inline_jobs do
+   include_context 'with API authentication', user_fabricator: :admin_user, oauth_scopes: 'admin:write admin:write:accounts'
+ 
+   shared_examples 'a successful notification delivery' do
+diff --git a/spec/requests/api/v1/conversations_spec.rb b/spec/requests/api/v1/conversations_spec.rb
+index aed3645998..a395bf8e5b 100644
+--- a/spec/requests/api/v1/conversations_spec.rb
++++ b/spec/requests/api/v1/conversations_spec.rb
+@@ -2,7 +2,7 @@
+ 
+ require 'rails_helper'
+ 
+-RSpec.describe 'API V1 Conversations' do
++RSpec.describe 'API V1 Conversations', :inline_jobs do
+   include_context 'with API authentication', oauth_scopes: 'read:statuses'
+ 
+   let!(:user) { Fabricate(:user, account_attributes: { username: 'alice' }) }
+diff --git a/spec/requests/api/v1/notifications_spec.rb b/spec/requests/api/v1/notifications_spec.rb
+index 15183d2a8b..dfc6020ccc 100644
+--- a/spec/requests/api/v1/notifications_spec.rb
++++ b/spec/requests/api/v1/notifications_spec.rb
+@@ -2,7 +2,7 @@
+ 
+ require 'rails_helper'
+ 
+-RSpec.describe 'Notifications' do
++RSpec.describe 'Notifications', :inline_jobs do
+   include_context 'with API authentication', oauth_scopes: 'read:notifications write:notifications'
+ 
+   let(:user)    { Fabricate(:user, account_attributes: { username: 'alice' }) }
+diff --git a/spec/requests/api/v1/reports_spec.rb b/spec/requests/api/v1/reports_spec.rb
+index 52cd58136d..46b063ab0e 100644
+--- a/spec/requests/api/v1/reports_spec.rb
++++ b/spec/requests/api/v1/reports_spec.rb
+@@ -32,7 +32,7 @@ RSpec.describe 'Reports' do
+ 
+     it_behaves_like 'forbidden for wrong scope', 'read read:reports'
+ 
+-    it 'creates a report', :aggregate_failures do
++    it 'creates a report', :aggregate_failures, :inline_jobs do
+       emails = capture_emails { subject }
+ 
+       expect(response).to have_http_status(200)
+diff --git a/spec/requests/api/v1/statuses/favourites_spec.rb b/spec/requests/api/v1/statuses/favourites_spec.rb
+index 0e58f3ef6b..b66b85643f 100644
+--- a/spec/requests/api/v1/statuses/favourites_spec.rb
++++ b/spec/requests/api/v1/statuses/favourites_spec.rb
+@@ -83,7 +83,7 @@ RSpec.describe 'Favourites' do
+ 
+     it_behaves_like 'forbidden for wrong scope', 'read read:favourites'
+ 
+-    context 'with public status' do
++    context 'with public status', :inline_jobs do
+       before do
+         FavouriteService.new.call(user.account, status)
+       end
+@@ -103,7 +103,7 @@ RSpec.describe 'Favourites' do
+       end
+     end
+ 
+-    context 'when the requesting user was blocked by the status author' do
++    context 'when the requesting user was blocked by the status author', :inline_jobs do
+       before do
+         FavouriteService.new.call(user.account, status)
+         status.account.block!(user.account)
+diff --git a/spec/requests/api/v1/timelines/home_spec.rb b/spec/requests/api/v1/timelines/home_spec.rb
+index 6ff0a51543..89b5f392c5 100644
+--- a/spec/requests/api/v1/timelines/home_spec.rb
++++ b/spec/requests/api/v1/timelines/home_spec.rb
+@@ -2,7 +2,7 @@
+ 
+ require 'rails_helper'
+ 
+-RSpec.describe 'Home' do
++RSpec.describe 'Home', :inline_jobs do
+   let(:user)    { Fabricate(:user) }
+   let(:scopes)  { 'read:statuses' }
+   let(:token)   { Fabricate(:accessible_access_token, resource_owner_id: user.id, scopes: scopes) }
+diff --git a/spec/requests/api/v2/notifications/accounts_spec.rb b/spec/requests/api/v2/notifications/accounts_spec.rb
+index ddc9c5d83b..91490bd83e 100644
+--- a/spec/requests/api/v2/notifications/accounts_spec.rb
++++ b/spec/requests/api/v2/notifications/accounts_spec.rb
+@@ -2,7 +2,7 @@
+ 
+ require 'rails_helper'
+ 
+-RSpec.describe 'Accounts in grouped notifications' do
++RSpec.describe 'Accounts in grouped notifications', :inline_jobs do
+   let(:user)    { Fabricate(:user, account_attributes: { username: 'alice' }) }
+   let(:token)   { Fabricate(:accessible_access_token, resource_owner_id: user.id, scopes: scopes) }
+   let(:scopes)  { 'read:notifications write:notifications' }
+diff --git a/spec/requests/api/v2/notifications_spec.rb b/spec/requests/api/v2/notifications_spec.rb
+index 23e617fb65..90112c14c8 100644
+--- a/spec/requests/api/v2/notifications_spec.rb
++++ b/spec/requests/api/v2/notifications_spec.rb
+@@ -2,7 +2,7 @@
+ 
+ require 'rails_helper'
+ 
+-RSpec.describe 'Notifications' do
++RSpec.describe 'Notifications', :inline_jobs do
+   include_context 'with API authentication', oauth_scopes: 'read:notifications write:notifications'
+ 
+   let(:user)    { Fabricate(:user, account_attributes: { username: 'alice' }) }

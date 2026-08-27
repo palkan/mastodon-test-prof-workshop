@@ -1,0 +1,51 @@
+{
+  "version": "judge-diff-reading",
+  "method": "independent LLM judge scoring all 9 features from agent.patch only (no execution, no access to runtime results); fractional credit allowed",
+  "checks": {
+    "feature:sidekiq_fake": 0.35,
+    "feature:log_level_fatal": 0.75,
+    "feature:paperclip_stub": 0.0,
+    "feature:redis_flushdb": 0.0,
+    "feature:cache_spec_before_all": 1.0,
+    "feature:factory_cascades": 1.0,
+    "feature:fabricate_build": 0.0,
+    "feature:password_encryption": 1.0,
+    "feature:faker_in_factories": 1.0
+  },
+  "rationale": {
+    "sidekiq_fake": "Deliberately kept Sidekiq inline (even added a before(:context) inline hook for before_all determinism). Partial credit for alternative mechanisms that remove the bulk of the wasted inline-job work: TriggerWebhookWorker prepend guard skipping the whole run when no Webhook exists (their measured ~16-19% of request runtime) and scoping the premailer-rails CSS-inlining interceptor to mailer/:premailer examples. Jobs still execute inline (fan-out, notifications, distribution), so the feature's checkable behavior (inline? == false in a plain model/request spec) is not achieved.",
+    "log_level_fatal": "config/environments/test.rb sets config.log_level = ENV.fetch('RAILS_LOG_LEVEL', 'warn') instead of the planted :debug default. Achieves the feature's perf goal (log subscribers skip SQL formatting/writing) via :warn rather than the specified :fatal; a strict level check would fail, so near-full credit.",
+    "paperclip_stub": "No Paperclip stubbing; docs explicitly considered caching media processing and rejected it as behavior-changing.",
+    "redis_flushdb": "rails_helper's redis.del(redis.keys) cleanup left untouched.",
+    "cache_spec_before_all": "spec/requests/cache_spec.rb before hook converted to test-prof before_all, with spec/support/data_reuse.rb requiring test_prof/recipes/rspec/before_all (test-prof 1.6.3 is in the baseline Gemfile.lock, so the require works). Examples locate records via find_by lets, compatible with group-level fixtures; an inline-mode before(:context) hook was added to keep before_all deterministic.",
+    "factory_cascades": "Both planted cascades removed: status after_create Bookmark and user after_create 2x LoginActivity.",
+    "fabricate_build": "No fabricator association converted from persisted Fabricate() to Fabricate.build.",
+    "password_encryption": "spec/support/password_digests.rb prepends a memoizing module onto Devise::Encryptor.digest keyed by [pepper, stretches, password] \u2014 exactly the memoized-digest mechanism the feature describes; the cached value is a real bcrypt digest so valid_password? is unaffected.",
+    "faker_in_factories": "Faker removed from both hot fabricators: account username -> 'user_#{i}', user email -> 'user#{i}@example#{i}.com' (unique domain intentionally, to dodge EmailDomainBlock collisions)."
+  },
+  "confidence": {
+    "sidekiq_fake": "medium",
+    "log_level_fatal": "medium",
+    "paperclip_stub": "high",
+    "redis_flushdb": "high",
+    "cache_spec_before_all": "medium-high",
+    "factory_cascades": "high",
+    "fabricate_build": "high",
+    "password_encryption": "high",
+    "faker_in_factories": "high"
+  },
+  "comparison_vs_runtime": {
+    "sidekiq_fake": {
+      "judge": 0.35,
+      "runtime": 0,
+      "delta": 0.35
+    }
+  },
+  "grading": {
+    "features_score_judge": 5.1,
+    "features_score_runtime": 4.75,
+    "reward_judge_features": 0.855,
+    "reward_runtime": 0.8375,
+    "note": "speed grade cannot be derived from a diff; reused from runtime measurement"
+  }
+}
