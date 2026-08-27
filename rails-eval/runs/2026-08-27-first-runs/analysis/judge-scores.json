@@ -1,0 +1,109 @@
+{
+  "gpt-5.6-luna": {
+    "features": {
+      "sidekiq_fake": 0.0,
+      "log_level_fatal": 0.0,
+      "paperclip_stub": 0.0,
+      "redis_flushdb": 0.7,
+      "cache_spec_before_all": 0.0,
+      "factory_cascades": 1.0,
+      "fabricate_build": 0.0,
+      "password_encryption": 0.0
+    },
+    "rationale": {
+      "sidekiq_fake": "Kept :inline as the default; only added `unless Sidekiq::Testing.inline?` to skip a redundant set — a plain spec still sees inline? == true.",
+      "log_level_fatal": "No change to config/environments/test.rb or any logger level anywhere in the diff.",
+      "paperclip_stub": "No Paperclip-related change in the diff.",
+      "redis_flushdb": "Switched to redis.flushdb but only for :model and :request typed examples; all other spec types keep redis.del(redis.keys). Goal achieved for the graded suites, not suite-wide.",
+      "cache_spec_before_all": "spec/requests/cache_spec.rb untouched.",
+      "factory_cascades": "Both known cascades removed: status after_create bookmark and user after_create 2x login_activity.",
+      "fabricate_build": "No fabricator association converted from persisted Fabricate(...) to Fabricate.build; spoiled candidates in baseline (conversation parent_account, announcement_reaction custom_emoji, access_grant user, web_push_subscription user/token) all untouched.",
+      "password_encryption": "User fabricator still sets plain `password '123456789'`, so BCrypt encryption runs per created user; only the Faker email was replaced with a cheap sequence."
+    },
+    "confidence": {
+      "sidekiq_fake": "high",
+      "log_level_fatal": "high",
+      "paperclip_stub": "high",
+      "redis_flushdb": "medium",
+      "cache_spec_before_all": "high",
+      "factory_cascades": "high",
+      "fabricate_build": "medium",
+      "password_encryption": "high"
+    }
+  },
+  "grok-4.6": {
+    "features": {
+      "sidekiq_fake": 0.8,
+      "log_level_fatal": 1.0,
+      "paperclip_stub": 0.0,
+      "redis_flushdb": 1.0,
+      "cache_spec_before_all": 1.0,
+      "factory_cascades": 1.0,
+      "fabricate_build": 0.0,
+      "password_encryption": 0.0
+    },
+    "rationale": {
+      "sidekiq_fake": "Default is :fake for :model and :request types with a clean :inline_jobs opt-in tag applied to 12 files/examples; other spec types deliberately stay :inline, so an untyped plain spec would still see inline? == true — near-complete for the graded suites, not a global default flip.",
+      "log_level_fatal": "config.log_level = ENV.fetch('RAILS_LOG_LEVEL', 'fatal') in config/environments/test.rb — Rails.logger.level will be fatal by default.",
+      "paperclip_stub": "Explicitly deferred in the agent's own notes ('Do not globally disable Paperclip post-processing'); no stubbing implemented.",
+      "redis_flushdb": "Global per-example cleanup switched from redis.del(redis.keys) to redis.flushdb for all spec types.",
+      "cache_spec_before_all": "cache_spec setup converted to test-prof before_all with the recipe required; per-example lets re-find records via find_by so the conversion is behavior-preserving; also flagged an FPROF-verifiable win in notes (18.75s -> 4.56s).",
+      "factory_cascades": "Both known cascades removed, plus extra cascade reductions (poll/status_trend/notification_request now share one account instead of fabricating independent ones).",
+      "fabricate_build": "Poll/status_trend/notification_request associations were restructured but still use persisted Fabricate(...); no association converted to Fabricate.build, and the baseline's persisted-association fabricators are untouched.",
+      "password_encryption": "User fabricator keeps `password '123456789'`; no encrypted_password pre-set or BCrypt avoidance despite webhook/other wins."
+    },
+    "confidence": {
+      "sidekiq_fake": "medium",
+      "log_level_fatal": "high",
+      "paperclip_stub": "high",
+      "redis_flushdb": "high",
+      "cache_spec_before_all": "medium",
+      "factory_cascades": "high",
+      "fabricate_build": "medium",
+      "password_encryption": "high"
+    }
+  },
+  "kimi-k3": {
+    "features": {
+      "sidekiq_fake": 0.6,
+      "log_level_fatal": 0.5,
+      "paperclip_stub": 0.0,
+      "redis_flushdb": 0.0,
+      "cache_spec_before_all": 0.0,
+      "factory_cascades": 1.0,
+      "fabricate_build": 0.0,
+      "password_encryption": 0.0
+    },
+    "rationale": {
+      "sidekiq_fake": ":fake set via type-scoped before hooks for :model and :request (declaration order makes fake win over the retained global inline hook), with opt-back-in via a `sidekiq: :inline` around hook — but that around wraps the type-scoped before hooks, so `Sidekiq.testing!(:fake)` may clobber the block-scoped inline for tagged examples unless Sidekiq 8's two APIs act at different precedence levels; other spec types remain inline.",
+      "log_level_fatal": "Log level changed to :warn, not :fatal — captures most of the debug-SQL-logging win by a different value, but a Rails.logger.level == fatal check fails.",
+      "paperclip_stub": "Identified media_attachment/Paperclip as the priciest fabricator in notes but explicitly left it for a future phase.",
+      "redis_flushdb": "redis.del(redis.keys) untouched; the agent measured the hook as negligible and deliberately skipped it.",
+      "cache_spec_before_all": "spec/requests/cache_spec.rb untouched.",
+      "factory_cascades": "Both known cascades removed: status after_create bookmark and user after_create 2x login_activity.",
+      "fabricate_build": "Replaced account's already-non-persisting Fabricate.build(:user) with a plain User.new helper (a speed change, not a persistence fix); no spoiled persisted association converted to build.",
+      "password_encryption": "Helper still passes password: '123456789' to User.new so BCrypt still runs per user; the agent's own stackprof even flagged BCrypt at ~4% but did not fix it."
+    },
+    "confidence": {
+      "sidekiq_fake": "low",
+      "log_level_fatal": "high",
+      "paperclip_stub": "high",
+      "redis_flushdb": "high",
+      "cache_spec_before_all": "high",
+      "factory_cascades": "high",
+      "fabricate_build": "medium",
+      "password_encryption": "high"
+    }
+  },
+  "judge_notes": [
+    "sidekiq_fake scoring hinges on where the verification's 'empty plain spec' lives: rails_helper derives :type from the spec directory, so a probe placed under spec/models or spec/requests would see :fake for both grok and kimi, while a probe outside those directories would see :inline for all three agents. Grok (0.8) and kimi (0.6) both scoped fake mode to exactly the two graded suites rather than flipping the global default.",
+    "kimi's opt-back-in mechanism mixes Sidekiq 8.1.6 APIs: an around hook using Sidekiq::Testing.inline! { } wraps type-scoped before hooks that call Sidekiq.testing!(:fake). If both mutate the same mode state, the fake before-hook fires inside the inline block and tagged examples actually run fake (their own notes say those ~41 examples fail under fake). Their notes claim 0 failures, which would imply the block form takes precedence, but I could not verify Sidekiq 8 internals by reading — hence confidence low and a 0.6 rather than 0.75.",
+    "redis_flushdb for gpt-5.6-luna (0.7): flushdb only for model/request typed examples; a command-spying verification spec would pass or fail depending on the probe spec's derived type, same ambiguity as sidekiq_fake.",
+    "log_level for kimi: :warn achieves essentially the same I/O elimination as :fatal for SQL/debug logging, but the stated verification (Rails.logger.level == fatal) fails; scored 0.5 as goal-by-other-means.",
+    "fabricate_build: the checklist does not name the spoiled factories. From the baseline I identified candidates whose associations are persisted Fabricate(...) calls (conversation parent_account, announcement_reaction custom_emoji name, access_grant resource_owner, web_push_subscription user/access_token, webauthn_credential user, follow_request target_account, keypair account). None of the three diffs converts any association to Fabricate.build, so all scored 0.0; confidence medium only because I cannot be certain which factories the bench considers 'known spoiled'.",
+    "grok's before_all conversion of cache_spec could not be executed to confirm; read-level analysis says it is sound (setup only creates records, per-example lets re-find via find_by, test-prof savepoints roll back per-example mutations like sign_in), and the required test_prof recipe require is present. Confidence medium.",
+    "grok made two app-code changes (WebhookService early return, Rack::Attack disabled in test + httplog skipped in test) that are real suite-wide wins but map to none of the 8 features; noted as insight, not scored.",
+    "None of the three agents addressed paperclip_stub or password_encryption; two of them (grok via stackprof-adjacent notes, kimi via stackprof BCrypt ~4%) explicitly identified the cost and deferred it.",
+    "All timing/failure-count claims in the agents' docs/*.md notes were treated as unverified self-reports and not used as evidence for scores."
+  ]
+}

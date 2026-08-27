@@ -1,0 +1,105 @@
+{
+  "trial": "mastodon-test-optimization__NlkPdc1",
+  "task": "mastodon-test-optimization",
+  "agent": "miniswen",
+  "model": "openrouter/x-ai/grok-4.6",
+  "index": 1,
+  "revision": {
+    "commit": "a0bddcb042cc931b2e184a195a70bdf090419613",
+    "dirty": false
+  },
+  "lemans_version": "1.0.0",
+  "tags": [
+    "rails",
+    "rspec",
+    "test-optimization",
+    "multi-step"
+  ],
+  "metadata": {
+    "merged_from_steps": 3,
+    "per_step_usage": [
+      {
+        "step": 1,
+        "steps": 39,
+        "cost_usd": 0.9719,
+        "input_tokens": 1497704,
+        "output_tokens": 18885,
+        "cached_tokens": 1424512,
+        "duration": null,
+        "over_step_limit": false,
+        "over_cost_limit": false
+      },
+      {
+        "step": 2,
+        "steps": 44,
+        "cost_usd": 1.5006,
+        "input_tokens": 2213374,
+        "output_tokens": 27985,
+        "cached_tokens": 2062720,
+        "duration": 1109.0,
+        "over_step_limit": false,
+        "over_cost_limit": false
+      },
+      {
+        "step": 3,
+        "steps": 55,
+        "cost_usd": 3.0508,
+        "input_tokens": 3194630,
+        "output_tokens": 32106,
+        "cached_tokens": 2354048,
+        "duration": 847.0,
+        "over_step_limit": false,
+        "over_cost_limit": false
+      }
+    ],
+    "default_limits": {
+      "steps": 100,
+      "cost_usd": 5.0
+    },
+    "over_default_limits": {
+      "steps": false,
+      "cost_usd": false,
+      "merged_steps": true,
+      "merged_cost_usd": true,
+      "note": "runs executed without limits; per-step flags computed post-hoc against defaults (100 steps, $5); merged_* flags compare 3-step totals"
+    },
+    "verification": {
+      "speedup_ratio": 3.511,
+      "speed_grade": 12,
+      "speed_grade_formula": "round(min(old/new, 2) * 5) + (2 if old/new > 2.5)",
+      "features_score": 5,
+      "total_points": 17,
+      "max_points": 20,
+      "reward": 0.85
+    },
+    "timestamps_note": "started_at/finished_at from step commit times; step-1 working time not included (first commit marks step-1 end)"
+  },
+  "phases": [
+    {
+      "name": "agent",
+      "started_at": "2026-08-26T17:56:21.000000Z",
+      "finished_at": "2026-08-26T18:28:57.000000Z"
+    }
+  ],
+  "reward": 0.85,
+  "outcome": {
+    "name": "completed",
+    "scored": true
+  },
+  "usage": {
+    "input_tokens": 6905708,
+    "output_tokens": 78976,
+    "cached_tokens": 5841280,
+    "steps": 138,
+    "cost_usd": 5.523352,
+    "cost_source": {
+      "name": "model_registry",
+      "model": "openrouter/x-ai/grok-4.6",
+      "priced_as": "openrouter/x-ai/grok-4.6",
+      "registry": "ruby_llm 1.16.0 (registry 2026-07-21T02:33:57Z)"
+    }
+  },
+  "duration": 1956.0,
+  "started_at": "2026-08-26T17:56:21Z",
+  "finished_at": "2026-08-26T18:28:57Z"
+}

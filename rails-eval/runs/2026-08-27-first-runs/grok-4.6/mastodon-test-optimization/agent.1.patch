@@ -1,0 +1,162 @@
+diff --git a/docs/spec_performance.md b/docs/spec_performance.md
+new file mode 100644
+index 0000000000..0949039535
+--- /dev/null
++++ b/docs/spec_performance.md
+@@ -0,0 +1,84 @@
++# RSpec performance notes
++
++Working notes for suite-level optimizations. Prefer configuration and shared
++setup changes over rewriting individual examples. Do not treat this as product
++documentation.
++
++## Scope and how to measure
++
++- Ignore system specs and streaming/search/js-tagged specs (excluded by default).
++- Do **not** run the whole suite in this environment; it will time out.
++- Profile one spec type at a time: `spec/models`, then `spec/requests`, …
++- Leave factories alone until that dedicated phase.
++- Use a fixed seed for comparable timings:
++
++```sh
++RAILS_ENV=test bundle exec rspec spec/models --profile 25 --seed 1234
++```
++
++Useful TestProf (already in the Gemfile) commands for later phases:
++
++```sh
++FPROF=1 RAILS_ENV=test bundle exec rspec spec/models --seed 1234
++EVENT_PROF=sql.active_record RAILS_ENV=test bundle exec rspec spec/models --seed 1234
++RD_PROF=1 RAILS_ENV=test bundle exec rspec spec/models --seed 1234
++```
++
++## `spec/models` baseline (before this phase)
++
++- Command: `bundle exec rspec spec/models --profile 25 --seed 1234`
++- 1795 examples, 0 failures
++- **148.9s** example time (files ~2.1s)
++- Hottest groups: `Trends::Statuses` (~12s), `AccountStatusesCleanupPolicy` (~14s),
++  `TagFeed` (~11s), `Status` (~11s), `PublicFeed` (~8s), `Notification` (~7s),
++  `MediaAttachment` (~6s)
++
++Shared cost (not example-specific):
++
++1. **`Sidekiq.testing!(:inline)` on every example** — Account/Status/User
++   `after_commit` callbacks enqueue `TriggerWebhookWorker`. Inline mode runs
++   `WebhookService`, which **serializes the event even when no webhooks exist**.
++   Reblogs/status-heavy examples pay this over and over.
++2. **Redis cleanup after every example** used `redis.del(redis.keys)` (`KEYS *`
++   + `DEL`). Behavior is needed (`Rails.cache` / `Setting` isolation; e.g.
++   `public_feed_spec`), but `FLUSHDB` is equivalent and cheaper.
++3. Factories (later phase): `Fabricator(:status)` creates a bookmark;
++   `Fabricator(:user)` creates two login activities. Trends/cleanup-policy specs
++   fabricate many statuses, so this compounds.
++
++## `spec/models` changes in this phase
++
++- Model examples use Sidekiq **fake** mode unless tagged `:inline_jobs`.
++- Other spec types stay on **inline** (do not change their runtime behavior).
++- Three model examples deliver mail through Sidekiq and need the tag:
++  - `spec/models/admin/account_action_spec.rb` — sends email to target user
++  - `spec/models/email_subscription_spec.rb` — confirmation email callback
++  - `spec/models/user_spec.rb` — welcome email on first confirmation
++- `capture_emails` (ActionMailer) only sees deliveries if the Sidekiq/ActiveJob
++  mail worker actually runs.
++- After hook: `redis.flushdb` instead of `redis.del(redis.keys)`.
++
++After (same seed, including `:inline_jobs` tags): **97.17s**, 1795 examples, 0 failures (≈35% faster than 148.9s).
++
++## Future phases
++
++### Factories
++
++- Status fabricator `after_create` bookmark and user `login_activity` records
++  are the next large shared cost. Consider traits / optional associations.
++- `let_it_be` / `before_all` (test-prof) would help
++  `account_statuses_cleanup_policy_spec` and `trends/statuses_spec` which rebuild
++  large graphs per example. That changes setup, so keep it for a later pass.
++
++### `spec/requests`
++
++- Still uses Sidekiq inline by default. Profile before changing; many request
++  specs likely depend on worker side-effects (timelines, emails, ActivityPub).
++- Same Redis/cache after-hook already benefits them.
++- Watch Devise `reload_routes_unless_loaded` (needed for request/controller).
++
++### Media / Paperclip
++
++- `MediaAttachment` mp3-with-cover is inherently slow (image processors).
++- Do not globally disable Paperclip post-processing; those examples assert on
++  metadata. A later pass can tag `:paperclip` and skip styles elsewhere.
+diff --git a/spec/models/admin/account_action_spec.rb b/spec/models/admin/account_action_spec.rb
+index 5339084ec4..742a2f9249 100644
+--- a/spec/models/admin/account_action_spec.rb
++++ b/spec/models/admin/account_action_spec.rb
+@@ -87,7 +87,7 @@ RSpec.describe Admin::AccountAction do
+       end
+     end
+ 
+-    it 'sends email to target account user' do
++    it 'sends email to target account user', :inline_jobs do
+       emails = capture_emails { subject }
+ 
+       expect(emails).to contain_exactly(
+diff --git a/spec/models/email_subscription_spec.rb b/spec/models/email_subscription_spec.rb
+index 3730b5c8a4..6e1a0483f8 100644
+--- a/spec/models/email_subscription_spec.rb
++++ b/spec/models/email_subscription_spec.rb
+@@ -27,7 +27,7 @@ RSpec.describe EmailSubscription do
+   describe 'Callbacks' do
+     subject { Fabricate(:email_subscription) }
+ 
+-    it 'generates token and delivers confirmation email' do
++    it 'generates token and delivers confirmation email', :inline_jobs do
+       emails = capture_emails { subject }
+ 
+       expect(subject.confirmed_at).to be_nil
+diff --git a/spec/models/user_spec.rb b/spec/models/user_spec.rb
+index 3a1964b698..639fac5609 100644
+--- a/spec/models/user_spec.rb
++++ b/spec/models/user_spec.rb
+@@ -501,7 +501,7 @@ RSpec.describe User do
+     context 'when user is new' do
+       let(:confirmed_at) { nil }
+ 
+-      it 'confirms user and delivers welcome email' do
++      it 'confirms user and delivers welcome email', :inline_jobs do
+         emails = capture_emails { subject }
+ 
+         expect(user.confirmed_at).to be_present
+diff --git a/spec/rails_helper.rb b/spec/rails_helper.rb
+index dc330809a1..d62e952b97 100644
+--- a/spec/rails_helper.rb
++++ b/spec/rails_helper.rb
+@@ -105,8 +105,16 @@ RSpec.configure do |config|
+     self.use_transactional_tests = true
+   end
+ 
+-  config.before do
+-    Sidekiq.testing!(:inline)
++  # Model specs typically assert on records and enqueued jobs, not worker
++  # side-effects. Running Sidekiq inline makes every Account/Status/User
++  # fabricate serialize webhooks and run other after_commit workers.
++  # Keep inline as the default for other spec types (requests, services, …).
++  config.before do |example|
++    if example.metadata[:type] == :model && !example.metadata[:inline_jobs]
++      Sidekiq.testing!(:fake)
++    else
++      Sidekiq.testing!(:inline)
++    end
+   end
+ 
+   config.before :each, type: :cli do
+@@ -130,7 +138,8 @@ RSpec.configure do |config|
+ 
+   config.after do
+     Rails.cache.clear
+-    redis.del(redis.keys)
++    # FLUSHDB is equivalent to deleting every key and avoids the extra KEYS scan
++    redis.flushdb
+   end
+ 
+   # Assign types based on dir name for non-inferred types

@@ -1,0 +1,140 @@
+diff --git a/docs/factory-spec-performance.md b/docs/factory-spec-performance.md
+new file mode 100644
+index 0000000000..db4269cb61
+--- /dev/null
++++ b/docs/factory-spec-performance.md
+@@ -0,0 +1,13 @@
++# Factory performance notes
++
++The focused model and request suites use `Fabricate(:status)` and
++`Fabricate(:user)` extensively. Their factories previously had broad `after_create`
++side effects: every status created a bookmark and every user created two login
++activities. These records were not part of the normal fixture contract; specs that
++exercise bookmarks or login activities create the records explicitly. Removing the
++callbacks avoids hundreds of extra inserts and nested fabrications per run while
++leaving the examples unchanged.
++
++If a future spec needs a status's bookmark or a user's login history, it should
++create that relationship explicitly rather than making it an implicit property of
++the base fabricator.
+diff --git a/docs/model-spec-performance.md b/docs/model-spec-performance.md
+new file mode 100644
+index 0000000000..33a9661a89
+--- /dev/null
++++ b/docs/model-spec-performance.md
+@@ -0,0 +1,16 @@
++# Model spec performance baseline
++
++Measured locally with the default RSpec filters (JS, search, and streaming are excluded):
++
++- 1,795 examples
++- Baseline wall time: approximately 130.4 seconds (2:08.3 test time; 1.7 seconds load)
++- Slowest 30 examples: approximately 28.9 seconds / 21.9% of test time
++- Slowest recurring groups included `AccountStatusesCleanupPolicy`, `TagFeed`, `Status`, `Notification`, and trend queries.
++
++The model suite is database-heavy. The shared RSpec teardown previously cleared Redis with
++`redis.del(redis.keys)` for every example. Model specs now use `redis.flushdb`, which avoids
++fetching the complete key list before deletion; non-model specs retain the previous cleanup.
++Sidekiq inline mode is also only re-selected when a preceding example changed the mode.
++
++A complete post-change run should be repeated in CI or on a less variable machine before
++using this as the final 30% benchmark; individual local runs varied by several seconds.
+diff --git a/docs/request-spec-performance.md b/docs/request-spec-performance.md
+new file mode 100644
+index 0000000000..8e28f2f048
+--- /dev/null
++++ b/docs/request-spec-performance.md
+@@ -0,0 +1,13 @@
++# Request spec performance
++
++The enabled request suite (with the default `js`, `search`, and `streaming` exclusions)
++contains roughly 1,000 examples and is dominated by shared per-example setup/teardown rather
++than one endpoint. Request specs use the same dedicated test Redis database as the other
++non-parallel test processes. Their teardown previously ran `redis.keys` followed by `DEL` for
++every example. That requires a key-list response and an extra command each time; `FLUSHDB`
++provides the same isolation without enumerating keys. The request branch now uses `flushdb`,
++matching the existing model-suite optimization.
++
++The test cache is an in-memory store and remains cleared per example because request examples
++explicitly exercise cache behavior. Search and streaming specs remain excluded by default and
++were not changed.
+diff --git a/spec/fabricators/account_fabricator.rb b/spec/fabricators/account_fabricator.rb
+index 6a5218cee9..2ac6610911 100644
+--- a/spec/fabricators/account_fabricator.rb
++++ b/spec/fabricators/account_fabricator.rb
+@@ -4,7 +4,7 @@ require_relative '../support/signing_keys_helpers'
+ 
+ Fabricator(:account) do
+   transient :suspended, :silenced, :legacy_keypair, :requested_deletion
+-  username              { sequence(:username) { |i| "#{Faker::Internet.user_name(separators: %w(_))}#{i}" } }
++  username              { sequence(:username) { |i| "username#{i}" } }
+   last_webfingered_at   { Time.now.utc }
+   public_key            { |attrs| attrs[:legacy_keypair] ? SigningKeysHelpers::PUBLIC_RSA_TEST_KEY : '' }
+   private_key           { |attrs| attrs[:legacy_keypair] && attrs[:domain].nil? ? SigningKeysHelpers::PRIVATE_RSA_TEST_KEY : nil }
+diff --git a/spec/fabricators/status_fabricator.rb b/spec/fabricators/status_fabricator.rb
+index d38eec8603..17ac9ccd8a 100644
+--- a/spec/fabricators/status_fabricator.rb
++++ b/spec/fabricators/status_fabricator.rb
+@@ -7,8 +7,4 @@ Fabricator(:status) do
+   after_build do |status|
+     status.uri = Faker::Internet.device_token if !status.account.local? && status.uri.nil?
+   end
+-
+-  after_create do |status|
+-    Fabricate(:bookmark, status: status)
+-  end
+ end
+diff --git a/spec/fabricators/user_fabricator.rb b/spec/fabricators/user_fabricator.rb
+index c82a3c918e..bcd27c523a 100644
+--- a/spec/fabricators/user_fabricator.rb
++++ b/spec/fabricators/user_fabricator.rb
+@@ -7,15 +7,11 @@ Fabricator(:user) do
+       attrs.fetch(:account_attributes, {}).merge(user: nil)
+     )
+   end
+-  email        { sequence(:email) { |i| "#{i}#{Faker::Internet.email}" } }
++  email        { sequence(:email) { |i| "user#{i}@example.com" } }
+   password     '123456789'
+   confirmed_at { Time.zone.now }
+   current_sign_in_at { Time.zone.now }
+   agreement true
+-
+-  after_create do |user|
+-    2.times { Fabricate(:login_activity, user: user) }
+-  end
+ end
+ 
+ Fabricator(:admin_user, from: :user) do
+diff --git a/spec/rails_helper.rb b/spec/rails_helper.rb
+index dc330809a1..b55e820aef 100644
+--- a/spec/rails_helper.rb
++++ b/spec/rails_helper.rb
+@@ -106,7 +106,7 @@ RSpec.configure do |config|
+   end
+ 
+   config.before do
+-    Sidekiq.testing!(:inline)
++    Sidekiq.testing!(:inline) unless Sidekiq::Testing.inline?
+   end
+ 
+   config.before :each, type: :cli do
+@@ -128,9 +128,17 @@ RSpec.configure do |config|
+     host! 'localhost:3000'
+   end
+ 
+-  config.after do
++  config.after do |example|
+     Rails.cache.clear
+-    redis.del(redis.keys)
++
++    # Specs use the dedicated test Redis database. FLUSHDB avoids fetching every
++    # key just to delete it, which is particularly expensive across the large
++    # model and request suites.
++    if %i[model request].include?(example.metadata[:type])
++      redis.flushdb
++    else
++      redis.del(redis.keys)
++    end
+   end
+ 
+   # Assign types based on dir name for non-inferred types

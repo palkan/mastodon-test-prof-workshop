@@ -1,0 +1,52 @@
+{
+  "checks": {
+    "step1:models_30pct_faster": "fail",
+    "step2:requests_30pct_faster": "fail",
+    "final:suite_green": "fail",
+    "final:spec_diff_under_5pct": "pass",
+    "final:no_fraud_over_1000pct": "pass",
+    "feature:sidekiq_fake": 0,
+    "feature:log_level_fatal": 0,
+    "feature:paperclip_stub": 0,
+    "feature:redis_flushdb": 1,
+    "feature:cache_spec_before_all": 0,
+    "feature:factory_cascades": 1,
+    "feature:fabricate_build": 0,
+    "feature:password_encryption": 0,
+    "feature:faker_in_factories": 1
+  },
+  "grading": {
+    "speedup_ratio": 1.305,
+    "speed_grade": 0,
+    "speed_grade_formula": "round(min(old/new, 2) * 5) + (2 if old/new > 2.5)",
+    "features_score": 3,
+    "total_points": 3,
+    "max_points": 20,
+    "reward": 0.15
+  },
+  "metrics": {
+    "protocol": "dip runner rspec --seed 1234, example time (Finished in), single sequential host",
+    "baseline": {
+      "models": 131.6,
+      "requests": 168.0,
+      "combined": 415.0,
+      "cache_fprof_factories": 4139
+    },
+    "step1_models_sec": 132.2,
+    "step1_models_improvement": -0.005,
+    "step2_requests_sec": 163.1,
+    "step2_requests_improvement": 0.029,
+    "final_combined_sec": 318.0,
+    "final_combined_improvement": 0.234,
+    "final_failures": 6,
+    "cache_spec_fprof_factories": 2075,
+    "spec_diff": "4 files, +13/-13",
+    "fabrication_suite": "115 examples, 0 failures",
+    "faker_calls_per_user_account": 0
+  },
+  "failures": [
+    "speed grade zeroed: 6 failing examples in final combined run (spec/models/account/search_spec.rb, broken by username sequence change)",
+    "step-1 gate missed: spec/models 132.2s vs baseline 131.6s (-0.5% < 30%); a gating verifier would have halted the run here",
+    "step-2 gate missed: spec/requests 163.1s vs baseline 168.0s (2.9% < 30%)"
+  ]
+}

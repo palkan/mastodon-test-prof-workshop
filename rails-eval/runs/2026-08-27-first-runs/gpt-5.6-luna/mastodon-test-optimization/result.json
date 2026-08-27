@@ -1,0 +1,105 @@
+{
+  "trial": "mastodon-test-optimization__GjMzFxz",
+  "task": "mastodon-test-optimization",
+  "agent": "miniswen",
+  "model": "openrouter/openai/gpt-5.6-luna",
+  "index": 1,
+  "revision": {
+    "commit": "a0bddcb042cc931b2e184a195a70bdf090419613",
+    "dirty": false
+  },
+  "lemans_version": "1.0.0",
+  "tags": [
+    "rails",
+    "rspec",
+    "test-optimization",
+    "multi-step"
+  ],
+  "metadata": {
+    "merged_from_steps": 3,
+    "per_step_usage": [
+      {
+        "step": 1,
+        "steps": 24,
+        "cost_usd": 0.0224,
+        "input_tokens": 379033,
+        "output_tokens": 7515,
+        "cached_tokens": 353367,
+        "duration": null,
+        "over_step_limit": false,
+        "over_cost_limit": false
+      },
+      {
+        "step": 2,
+        "steps": 15,
+        "cost_usd": 0.0193,
+        "input_tokens": 278548,
+        "output_tokens": 6205,
+        "cached_tokens": 251273,
+        "duration": 606.0,
+        "over_step_limit": false,
+        "over_cost_limit": false
+      },
+      {
+        "step": 3,
+        "steps": 19,
+        "cost_usd": 0.0219,
+        "input_tokens": 412470,
+        "output_tokens": 5199,
+        "cached_tokens": 380437,
+        "duration": 164.0,
+        "over_step_limit": false,
+        "over_cost_limit": false
+      }
+    ],
+    "default_limits": {
+      "steps": 100,
+      "cost_usd": 5.0
+    },
+    "over_default_limits": {
+      "steps": false,
+      "cost_usd": false,
+      "merged_steps": false,
+      "merged_cost_usd": false,
+      "note": "runs executed without limits; per-step flags computed post-hoc against defaults (100 steps, $5); merged_* flags compare 3-step totals"
+    },
+    "verification": {
+      "speedup_ratio": 1.305,
+      "speed_grade": 0,
+      "speed_grade_formula": "round(min(old/new, 2) * 5) + (2 if old/new > 2.5)",
+      "features_score": 3,
+      "total_points": 3,
+      "max_points": 20,
+      "reward": 0.15
+    },
+    "timestamps_note": "started_at/finished_at from step commit times; step-1 working time not included (first commit marks step-1 end)"
+  },
+  "phases": [
+    {
+      "name": "agent",
+      "started_at": "2026-08-26T18:50:44.000000Z",
+      "finished_at": "2026-08-26T19:03:34.000000Z"
+    }
+  ],
+  "reward": 0.15,
+  "outcome": {
+    "name": "completed",
+    "scored": true
+  },
+  "usage": {
+    "input_tokens": 1070051,
+    "output_tokens": 18919,
+    "cached_tokens": 985077,
+    "steps": 58,
+    "cost_usd": 0.063589,
+    "cost_source": {
+      "name": "model_registry",
+      "model": "openrouter/openai/gpt-5.6-luna",
+      "priced_as": "openrouter/openai/gpt-5.6-luna",
+      "registry": "ruby_llm 1.16.0 (registry 2026-07-21T02:33:57Z)"
+    }
+  },
+  "duration": 770.0,
+  "started_at": "2026-08-26T18:50:44Z",
+  "finished_at": "2026-08-26T19:03:34Z"
+}

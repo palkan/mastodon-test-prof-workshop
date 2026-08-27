@@ -1,0 +1,48 @@
+{
+  "version": "judge-diff-reading",
+  "method": "independent LLM judge scoring features from agent.patch only (no execution, no access to runtime results); fractional credit allowed",
+  "checks": {
+    "feature:sidekiq_fake": 0.8,
+    "feature:log_level_fatal": 1.0,
+    "feature:paperclip_stub": 0.0,
+    "feature:redis_flushdb": 1.0,
+    "feature:cache_spec_before_all": 1.0,
+    "feature:factory_cascades": 1.0,
+    "feature:fabricate_build": 0.0,
+    "feature:password_encryption": 0.0
+  },
+  "rationale": {
+    "sidekiq_fake": "Default is :fake for :model and :request types with a clean :inline_jobs opt-in tag applied to 12 files/examples; other spec types deliberately stay :inline, so an untyped plain spec would still see inline? == true \u2014 near-complete for the graded suites, not a global default flip.",
+    "log_level_fatal": "config.log_level = ENV.fetch('RAILS_LOG_LEVEL', 'fatal') in config/environments/test.rb \u2014 Rails.logger.level will be fatal by default.",
+    "paperclip_stub": "Explicitly deferred in the agent's own notes ('Do not globally disable Paperclip post-processing'); no stubbing implemented.",
+    "redis_flushdb": "Global per-example cleanup switched from redis.del(redis.keys) to redis.flushdb for all spec types.",
+    "cache_spec_before_all": "cache_spec setup converted to test-prof before_all with the recipe required; per-example lets re-find records via find_by so the conversion is behavior-preserving; also flagged an FPROF-verifiable win in notes (18.75s -> 4.56s).",
+    "factory_cascades": "Both known cascades removed, plus extra cascade reductions (poll/status_trend/notification_request now share one account instead of fabricating independent ones).",
+    "fabricate_build": "Poll/status_trend/notification_request associations were restructured but still use persisted Fabricate(...); no association converted to Fabricate.build, and the baseline's persisted-association fabricators are untouched.",
+    "password_encryption": "User fabricator keeps `password '123456789'`; no encrypted_password pre-set or BCrypt avoidance despite webhook/other wins."
+  },
+  "confidence": {
+    "sidekiq_fake": "medium",
+    "log_level_fatal": "high",
+    "paperclip_stub": "high",
+    "redis_flushdb": "high",
+    "cache_spec_before_all": "medium",
+    "factory_cascades": "high",
+    "fabricate_build": "medium",
+    "password_encryption": "high"
+  },
+  "comparison_vs_runtime": {
+    "sidekiq_fake": {
+      "judge": 0.8,
+      "runtime": 1,
+      "delta": -0.2
+    }
+  },
+  "grading": {
+    "features_score_judge": 4.8,
+    "features_score_runtime": 5,
+    "reward_judge_features": 0.84,
+    "reward_runtime": 0.85,
+    "note": "speed grade cannot be derived from a diff; reused from runtime measurement"
+  }
+}

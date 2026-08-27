@@ -35,6 +35,8 @@ miniswen -p ./rails-eval/mastodon-test-optimization/instruction.1.md --docker $D
 
 Repeat for every task (or step in the task), analyze the results, tune your prompt, repeat for a few agents, and so on.
 
+**IMPORTANT**: Do not forget to cleanup the previous run (after all steps) artifacts stored in the FS but not tracked by Git (e.g., `/tmp`, `tmp/`, `log/`, `$HISTFILE`).
+
 ## Instruction tuning
 
 Models can overoptimize during the first step and identify all the bottlenecks right away. We should either:

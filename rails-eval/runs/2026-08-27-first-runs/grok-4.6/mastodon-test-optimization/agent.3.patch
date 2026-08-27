@@ -1,0 +1,152 @@
+diff --git a/docs/spec_performance.md b/docs/spec_performance.md
+index a9e94cd636..103d595ca6 100644
+--- a/docs/spec_performance.md
++++ b/docs/spec_performance.md
+@@ -9,7 +9,7 @@ documentation.
+ - Ignore system specs and streaming/search/js-tagged specs (excluded by default).
+ - Do **not** run the whole suite in this environment; it will time out.
+ - Profile one spec type at a time: `spec/models`, then `spec/requests`, …
+-- Leave factories alone until that dedicated phase.
++- Factory definitions live in `spec/fabricators` (Fabrication, not FactoryBot).
+ - Use a fixed seed for comparable timings:
+ 
+ ```sh
+@@ -109,18 +109,66 @@ After (same seed):
+ - `spec/requests/api/v1`: **39.06s** / 916 examples / 0 failures (≈34% vs 59.23s).
+ - `spec/requests`: **83.81s** / 1877 examples / 0 failures.
+ 
++## Factory phase (`spec/models` + `spec/requests`)
++
++Hot fabricators were creating extra records that almost no example used.
++
++### What was expensive
++
++1. **`Fabricator(:status)` `after_create` bookmark** — every status inserted a
++   `Bookmark` whose `account` was a *new* local account (plus its nested `User`).
++   Status-heavy groups (`PublicFeed`, `TagFeed`, `Status`, cleanup policy, trends)
++   paid for ~2x accounts/users. The extra bookmark was on a different account, so
++   it did not affect `bookmarked?` / API `bookmarked` for the author or viewer.
++   Specs that need bookmarks already `Fabricate(:bookmark, ...)`.
++2. **`Fabricator(:user)` `after_create` two `login_activity` rows** — only ran on
++   `Fabricate(:user)` (not nested `Fabricate.build(:user)` from `:account`).
++   Request specs (`with API authentication`) hit this on every example. Login /
++   omniauth examples assert `change(LoginActivity, :count)` and already fabricate
++   activities when they need existing rows.
++3. **Independent `account` + `status` on `:poll` / `:status_trend`** — defaulted
++   to two accounts. `:status_pin` already did `status` from `attrs[:account]`.
++   `:notification_request` `last_status` also created a third account.
++
++Isolated `rails runner` (n=20, before): `Fabricate(:status)` ~32ms, each status
++left a bookmark + extra account/user; `Fabricate(:user)` wrote 2 login activities.
++
++### Changes (fabricators only; examples unchanged)
++
++- Drop status `after_create` bookmark and user `after_create` login activities.
++- `:poll` / `:status_trend`: reuse `status.account` (overrides still win, so
++  `Fabricate(:status_trend, status:, account: other)` stays valid).
++- `:notification_request`: `last_status` belongs to `from_account`.
++
++Do **not** add unused `:with_bookmark` / `:with_login_activities` fabricators —
++`spec/fabrication/fabricators_spec.rb` instantiates every schematic twice.
++
++### Measurement (same seed 1234)
++
++Hot model slice (`status`, `public_feed`, `account_statuses_cleanup_policy`,
++`tag_feed`, `trends/statuses`, `notification`, `account`): **20.23s → 11.15s**
++/ 333 examples / 0 failures (**≈45%**). Broader models+requests samples covering
++bookmarks, polls, trends, notification requests, omniauth, cache, timelines,
++API statuses: 0 failures.
++
++Expect ≥20% on full `spec/models` + `spec/requests` from fewer inserts alone.
++
+ ## Future phases
+ 
+-### Factories
++### Still factory-adjacent
+ 
+-- Status fabricator `after_create` bookmark and user `login_activity` records
+-  are the next large shared cost. Consider traits / optional associations.
+ - `let_it_be` / `before_all` (test-prof) would help
+   `account_statuses_cleanup_policy_spec` and `trends/statuses_spec` which rebuild
+   large graphs per example. Request `cache_spec` already uses `before_all`.
+ - `include_context 'with API authentication'` fabricates user+token per example;
+   many API files override `scopes`/`token`, so do not blindly switch that
+   context to `let_it_be`.
++- Faker in `:account` username / `:user` email is ~0.4ms per call; sequences
++  would be cheaper but were left alone to avoid incidental example churn.
++- `:preview_card` always attaches `attachment.jpg` (Paperclip). Do not drop it
++  globally — other spec types assert on the image.
++- `:web_push_subscription` generates an EC key and `WebPushKeyValidator`
++  encrypts on every create. Low volume in models/requests.
+ 
+ ### Later spec types (controllers, services, workers)
+ 
+diff --git a/spec/fabricators/notification_request_fabricator.rb b/spec/fabricators/notification_request_fabricator.rb
+index 13f2c2d41f..91d717de0a 100644
+--- a/spec/fabricators/notification_request_fabricator.rb
++++ b/spec/fabricators/notification_request_fabricator.rb
+@@ -2,6 +2,6 @@
+ 
+ Fabricator(:notification_request) do
+   account
+-  from_account(fabricator: :account)
+-  last_status(fabricator: :status)
++  from_account { |attrs| attrs[:last_status]&.account || Fabricate(:account) }
++  last_status { |attrs| Fabricate(:status, account: attrs[:from_account]) }
+ end
+diff --git a/spec/fabricators/poll_fabricator.rb b/spec/fabricators/poll_fabricator.rb
+index 19c3b1d164..fc5cf2fe8f 100644
+--- a/spec/fabricators/poll_fabricator.rb
++++ b/spec/fabricators/poll_fabricator.rb
+@@ -1,8 +1,8 @@
+ # frozen_string_literal: true
+ 
+ Fabricator(:poll) do
+-  account
+-  status
++  status { |attrs| attrs[:account] ? Fabricate(:status, account: attrs[:account]) : Fabricate(:status) }
++  account { |attrs| attrs[:status].account }
+   expires_at  { 7.days.from_now }
+   options     %w(Foo Bar)
+   multiple    false
+diff --git a/spec/fabricators/status_fabricator.rb b/spec/fabricators/status_fabricator.rb
+index d38eec8603..17ac9ccd8a 100644
+--- a/spec/fabricators/status_fabricator.rb
++++ b/spec/fabricators/status_fabricator.rb
+@@ -7,8 +7,4 @@ Fabricator(:status) do
+   after_build do |status|
+     status.uri = Faker::Internet.device_token if !status.account.local? && status.uri.nil?
+   end
+-
+-  after_create do |status|
+-    Fabricate(:bookmark, status: status)
+-  end
+ end
+diff --git a/spec/fabricators/status_trend_fabricator.rb b/spec/fabricators/status_trend_fabricator.rb
+index c775892b1f..5f30505b73 100644
+--- a/spec/fabricators/status_trend_fabricator.rb
++++ b/spec/fabricators/status_trend_fabricator.rb
+@@ -1,6 +1,6 @@
+ # frozen_string_literal: true
+ 
+ Fabricator(:status_trend) do
+-  status
+-  account
++  status { |attrs| attrs[:account] ? Fabricate(:status, account: attrs[:account]) : Fabricate(:status) }
++  account { |attrs| attrs[:status].account }
+ end
+diff --git a/spec/fabricators/user_fabricator.rb b/spec/fabricators/user_fabricator.rb
+index c82a3c918e..300a6d9ba6 100644
+--- a/spec/fabricators/user_fabricator.rb
++++ b/spec/fabricators/user_fabricator.rb
+@@ -12,10 +12,6 @@ Fabricator(:user) do
+   confirmed_at { Time.zone.now }
+   current_sign_in_at { Time.zone.now }
+   agreement true
+-
+-  after_create do |user|
+-    2.times { Fabricate(:login_activity, user: user) }
+-  end
+ end
+ 
+ Fabricator(:admin_user, from: :user) do

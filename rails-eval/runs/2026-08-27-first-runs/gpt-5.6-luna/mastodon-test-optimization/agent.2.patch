@@ -1,0 +1,38 @@
+diff --git a/docs/request-spec-performance.md b/docs/request-spec-performance.md
+new file mode 100644
+index 0000000000..8e28f2f048
+--- /dev/null
++++ b/docs/request-spec-performance.md
+@@ -0,0 +1,13 @@
++# Request spec performance
++
++The enabled request suite (with the default `js`, `search`, and `streaming` exclusions)
++contains roughly 1,000 examples and is dominated by shared per-example setup/teardown rather
++than one endpoint. Request specs use the same dedicated test Redis database as the other
++non-parallel test processes. Their teardown previously ran `redis.keys` followed by `DEL` for
++every example. That requires a key-list response and an extra command each time; `FLUSHDB`
++provides the same isolation without enumerating keys. The request branch now uses `flushdb`,
++matching the existing model-suite optimization.
++
++The test cache is an in-memory store and remains cleared per example because request examples
++explicitly exercise cache behavior. Search and streaming specs remain excluded by default and
++were not changed.
+diff --git a/spec/rails_helper.rb b/spec/rails_helper.rb
+index 9d42b7bd2d..b55e820aef 100644
+--- a/spec/rails_helper.rb
++++ b/spec/rails_helper.rb
+@@ -131,10 +131,10 @@ RSpec.configure do |config|
+   config.after do |example|
+     Rails.cache.clear
+ 
+-    # Model specs only use the dedicated test Redis database. FLUSHDB avoids
+-    # fetching every key just to delete it, which is particularly expensive
+-    # across the large model suite. Keep the existing cleanup for other specs.
+-    if example.metadata[:type] == :model
++    # Specs use the dedicated test Redis database. FLUSHDB avoids fetching every
++    # key just to delete it, which is particularly expensive across the large
++    # model and request suites.
++    if %i[model request].include?(example.metadata[:type])
+       redis.flushdb
+     else
+       redis.del(redis.keys)

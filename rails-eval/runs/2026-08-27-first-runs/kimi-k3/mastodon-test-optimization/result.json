@@ -1,0 +1,107 @@
+{
+  "trial": "mastodon-test-optimization__lQV3NYc",
+  "task": "mastodon-test-optimization",
+  "agent": "miniswen",
+  "model": "openrouter/moonshotai/kimi-k3",
+  "index": 1,
+  "revision": {
+    "commit": "a0bddcb042cc931b2e184a195a70bdf090419613",
+    "dirty": false
+  },
+  "lemans_version": "1.0.0",
+  "tags": [
+    "rails",
+    "rspec",
+    "test-optimization",
+    "multi-step",
+    "over-step-limit",
+    "over-cost-limit"
+  ],
+  "metadata": {
+    "merged_from_steps": 3,
+    "per_step_usage": [
+      {
+        "step": 1,
+        "steps": 88,
+        "cost_usd": 1.9308,
+        "input_tokens": 2796418,
+        "output_tokens": 29272,
+        "cached_tokens": 2554624,
+        "duration": null,
+        "over_step_limit": false,
+        "over_cost_limit": false
+      },
+      {
+        "step": 2,
+        "steps": 121,
+        "cost_usd": 2.5924,
+        "input_tokens": 5487004,
+        "output_tokens": 41491,
+        "cached_tokens": 5367040,
+        "duration": 2754.0,
+        "over_step_limit": true,
+        "over_cost_limit": false
+      },
+      {
+        "step": 3,
+        "steps": 155,
+        "cost_usd": 6.2401,
+        "input_tokens": 13411973,
+        "output_tokens": 97032,
+        "cached_tokens": 13130112,
+        "duration": 5871.0,
+        "over_step_limit": true,
+        "over_cost_limit": true
+      }
+    ],
+    "default_limits": {
+      "steps": 100,
+      "cost_usd": 5.0
+    },
+    "over_default_limits": {
+      "steps": true,
+      "cost_usd": true,
+      "merged_steps": true,
+      "merged_cost_usd": true,
+      "note": "runs executed without limits; per-step flags computed post-hoc against defaults (100 steps, $5); merged_* flags compare 3-step totals"
+    },
+    "verification": {
+      "speedup_ratio": 3.227,
+      "speed_grade": 12,
+      "speed_grade_formula": "round(min(old/new, 2) * 5) + (2 if old/new > 2.5)",
+      "features_score": 3.75,
+      "total_points": 15.75,
+      "max_points": 20,
+      "reward": 0.7875
+    },
+    "timestamps_note": "started_at/finished_at from step commit times; step-1 working time not included (first commit marks step-1 end)"
+  },
+  "phases": [
+    {
+      "name": "agent",
+      "started_at": "2026-08-26T20:12:58.000000Z",
+      "finished_at": "2026-08-26T22:36:43.000000Z"
+    }
+  ],
+  "reward": 0.7875,
+  "outcome": {
+    "name": "completed",
+    "scored": true
+  },
+  "usage": {
+    "input_tokens": 21695395,
+    "output_tokens": 167795,
+    "cached_tokens": 21051776,
+    "steps": 364,
+    "cost_usd": 10.763315,
+    "cost_source": {
+      "name": "model_registry",
+      "model": "openrouter/moonshotai/kimi-k3",
+      "priced_as": "openrouter/moonshotai/kimi-k3",
+      "registry": "ruby_llm 1.16.0 (registry 2026-07-21T02:33:57Z)"
+    }
+  },
+  "duration": 8625.0,
+  "started_at": "2026-08-26T20:12:58Z",
+  "finished_at": "2026-08-26T22:36:43Z"
+}

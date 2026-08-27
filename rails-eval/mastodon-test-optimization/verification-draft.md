@@ -1,5 +1,7 @@
 ## How to verify? (Draft)
 
+_To be converted to verification_spec.rb, etc_
+
 Non-final steps only use rewards to decide if can proceed to the next step or not: 0 reward — stop here; 1 — continue to the next step.
 
 The final step's reward is fractional based on the optimizations applied and the overall speed improvement.
@@ -42,27 +44,9 @@ If the improvement is >1000% — marks as fraud and halt.
   - Redis delete keys vs. flushdb: verifable by spying Redis commands?
   - requests/cache_spec reusable setup (before(:all) or before_all): verifable by running `FPROF=1 be rspec -rtest-prof spec/requests/cache_spec.rb`
   - factory cascades: verifiable by running a test with a factory and count the number of records created (1 point if at least one cascade of known cascades is fixed)
-  - Fabricator.build: verifiable by creating a test that calls create (the association must not be persistent) (1 point if at least one of the known spoiled factories fixed)
   - Encryption in factories (`user.password`): verifiable by a BCrypt spy? (see also [this fix](https://github.com/palkan/mastodon-test-prof-workshop/commit/59472aeaf801507947444d0cf5c9448388dad3d0))
+  - Faker in factories: verifiable by a stub_const(:Faker)/spy/trace_location (?) on a :user factory
 
-NOTE: We (should) have 10 features.
+NOTE: We (should) have ~10 features.
 
 The final reward is calculated as follows: `min(grade + scored_features, 20) / 100)`. Thus, if the model speeds up things much better than we anticipated (>150%) but didn't fixed all the known problem, it still can score 1.0.
-
-## Observations
-
-What else to look for during results analylis (aka _insights_):
-
-- Examples changes (diff LOC): we instruct agents to minimize examples edits but do they follow? (Should we also add penalty to the reward for too big examples diff?)
-
-- Did the agent created and maintained the test optimization doc?
-
-- RSpec configuration style: complex `derive_metadata` with all paths/patterns vs adding tags to examples
-
-- TestProf recall: usage of profilers and recipes (`FROF`, `before_all`)
-
-- Mastodon recall: does the model know that this is a Mastodon codebase just looking at the structure? ("This looks like Mastodon" © Grok 4.6)
-
-- What are the other bottlenecks identified by a model? Which are truly impactful?
-
-- Did the model run fabrication specs (`spec/fabrication`) after modifying factories?

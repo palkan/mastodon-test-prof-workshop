@@ -1,0 +1,53 @@
+{
+  "version": "judge-diff-reading",
+  "method": "independent LLM judge scoring features from agent.patch only (no execution, no access to runtime results); fractional credit allowed",
+  "checks": {
+    "feature:sidekiq_fake": 0.6,
+    "feature:log_level_fatal": 0.5,
+    "feature:paperclip_stub": 0.0,
+    "feature:redis_flushdb": 0.0,
+    "feature:cache_spec_before_all": 0.0,
+    "feature:factory_cascades": 1.0,
+    "feature:fabricate_build": 0.0,
+    "feature:password_encryption": 0.0
+  },
+  "rationale": {
+    "sidekiq_fake": ":fake set via type-scoped before hooks for :model and :request (declaration order makes fake win over the retained global inline hook), with opt-back-in via a `sidekiq: :inline` around hook \u2014 but that around wraps the type-scoped before hooks, so `Sidekiq.testing!(:fake)` may clobber the block-scoped inline for tagged examples unless Sidekiq 8's two APIs act at different precedence levels; other spec types remain inline.",
+    "log_level_fatal": "Log level changed to :warn, not :fatal \u2014 captures most of the debug-SQL-logging win by a different value, but a Rails.logger.level == fatal check fails.",
+    "paperclip_stub": "Identified media_attachment/Paperclip as the priciest fabricator in notes but explicitly left it for a future phase.",
+    "redis_flushdb": "redis.del(redis.keys) untouched; the agent measured the hook as negligible and deliberately skipped it.",
+    "cache_spec_before_all": "spec/requests/cache_spec.rb untouched.",
+    "factory_cascades": "Both known cascades removed: status after_create bookmark and user after_create 2x login_activity.",
+    "fabricate_build": "Replaced account's already-non-persisting Fabricate.build(:user) with a plain User.new helper (a speed change, not a persistence fix); no spoiled persisted association converted to build.",
+    "password_encryption": "Helper still passes password: '123456789' to User.new so BCrypt still runs per user; the agent's own stackprof even flagged BCrypt at ~4% but did not fix it."
+  },
+  "confidence": {
+    "sidekiq_fake": "low",
+    "log_level_fatal": "high",
+    "paperclip_stub": "high",
+    "redis_flushdb": "high",
+    "cache_spec_before_all": "high",
+    "factory_cascades": "high",
+    "fabricate_build": "medium",
+    "password_encryption": "high"
+  },
+  "comparison_vs_runtime": {
+    "sidekiq_fake": {
+      "judge": 0.6,
+      "runtime": 1,
+      "delta": -0.4
+    },
+    "log_level_fatal": {
+      "judge": 0.5,
+      "runtime": 0.75,
+      "delta": -0.25
+    }
+  },
+  "grading": {
+    "features_score_judge": 2.1,
+    "features_score_runtime": 2.75,
+    "reward_judge_features": 0.705,
+    "reward_runtime": 0.7375,
+    "note": "speed grade cannot be derived from a diff; reused from runtime measurement"
+  }
+}

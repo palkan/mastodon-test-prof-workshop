@@ -1,0 +1,50 @@
+{
+  "checks": {
+    "step1:models_30pct_faster": "fail",
+    "step2:requests_30pct_faster": "pass",
+    "final:suite_green": "pass",
+    "final:spec_diff_under_5pct": "pass",
+    "final:no_fraud_over_1000pct": "pass",
+    "feature:sidekiq_fake": 1,
+    "feature:log_level_fatal": 1,
+    "feature:paperclip_stub": 0,
+    "feature:redis_flushdb": 1,
+    "feature:cache_spec_before_all": 1,
+    "feature:factory_cascades": 1,
+    "feature:fabricate_build": 0,
+    "feature:password_encryption": 0,
+    "feature:faker_in_factories": 0
+  },
+  "grading": {
+    "speedup_ratio": 3.511,
+    "speed_grade": 12,
+    "speed_grade_formula": "round(min(old/new, 2) * 5) + (2 if old/new > 2.5)",
+    "features_score": 5,
+    "total_points": 17,
+    "max_points": 20,
+    "reward": 0.85
+  },
+  "metrics": {
+    "protocol": "dip runner rspec --seed 1234, example time (Finished in), single sequential host",
+    "baseline": {
+      "models": 131.6,
+      "requests": 168.0,
+      "combined": 415.0,
+      "cache_fprof_factories": 4139
+    },
+    "step1_models_sec": 95.5,
+    "step1_models_improvement": 0.274,
+    "step2_requests_sec": 89.8,
+    "step2_requests_improvement": 0.465,
+    "final_combined_sec": 118.2,
+    "final_combined_improvement": 0.715,
+    "final_failures": 0,
+    "cache_spec_fprof_factories": 19,
+    "spec_diff": "20 files, +42/-30",
+    "fabrication_suite": "115 examples, 0 failures",
+    "faker_calls_per_user_account": 4
+  },
+  "failures": [
+    "step-1 gate missed: spec/models 95.5s vs baseline 131.6s (27.4% < 30%); a gating verifier would have halted the run here"
+  ]
+}

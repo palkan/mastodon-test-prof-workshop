@@ -1,0 +1,189 @@
+diff --git a/docs/rspec_optimization_notes.md b/docs/rspec_optimization_notes.md
+index 40e58bc8d8..c3bd51eabb 100644
+--- a/docs/rspec_optimization_notes.md
++++ b/docs/rspec_optimization_notes.md
+@@ -108,3 +108,70 @@ Future phases ideas (factories still deferred, per assignment):
+ - `Rack::Attack` is registered twice in the middleware stack
+   (application.rb + railtie auto-injection); de-duplicating could shave a
+   bit more (app refactor, not done).
++
++## Phase 3: factories (`spec/models` + `spec/requests`)
++
++Baseline measured this run (with Phase 1+2 changes applied):
++
++- `spec/models`: ~46s (1795 examples)
++- `spec/requests`: ~107s (1877 examples)
++- Combined: ~153s
++
++Method: `FPROF=1 bundle exec rspec -r test_prof <paths>` gives per-factory
++totals ("total" includes nested fabrications; "top-level" is direct calls).
++
++Findings & applied factory changes:
++
++1. **status fabricator fabricated a bookmark on every create**
++   (`after_create { Fabricate(:bookmark, status: status) }`). FPROF showed
++   `bookmark` costing ~15s in requests / ~10s in models — plus it
++   cascades into `account`/`user` fabrications (each bookmark fabricates
++   an account, which fabricate.builds a user). Removed the hook; specs
++   that need a bookmark fabricate it explicitly (only export/cleanup
++   policy specs do).
++
++2. **user fabricator fabricated 2 login_activities on every create**
++   (`after_create { 2.times { Fabricate(:login_activity, user: user) } }`).
++   FPROF showed `login_activity` ~2.4s in requests models/requests level.
++   Removed; specs that care (sessions controller, cleanup scheduler)
++   create one explicitly.
++
++3. **account's nested user build** — the fabricator used
++   `Fabricate.build(:user, account: nil)` to build the `user` association
++   (~15 ms/call of Fabrication schematic-evaluation overhead). Replaced
++   with `FabricateHelpers.build_user` (`User.new` with identical
++   defaults, ~1 ms/call) in `spec/support/fabricate_helpers.rb`. The
++   helper keeps its own email counter (`helper_user_N@example.com`) to
++   preserve uniqueness across both paths. Saves several ms per
++   `Fabricate(:account)`.
++
++4. **Faker in hot paths** — account username (`Faker::Internet.user_name`,
++   ~0.4 ms) and user email (`Faker::Internet.email`, ~0.18 ms) per call.
++   Replaced with deterministic sequences (`user_N` / `user_N@example.com`).
++   Username must match `Account::USERNAME_RE` — `user_` prefix is valid.
++
++Measured results this phase (final, stable across repeated runs):
++
++- `spec/models`: ~46s → **~34.2-34.7s** (~25%)
++- `spec/requests`: ~107s → **~78.5-79s** (~26%)
++- Combined: ~153s → ~113-114s (~25-26%). Target (~20%) exceeded.
++
++Additional factory change in the final pass:
++
++5. **memoized `UserRole.find_by`** in `admin/moderator/owner_user`
++   fabricators (`FabricateHelpers.role`) — avoids a SELECT per fabricated
++   admin/mod user (roles are seeded once per suite).
++
++Leftovers (future phases):
++
++- `media_attachment` is the priciest single fabricator (~90-126 ms/call)
++  due to Paperclip image processors (lazy_thumbnail/blurhash/color
++  extractor). Models run spends ~5s here, requests ~1.8s. Needs a careful
++  approach (specs assert `thumbnail: be_present` for audio fixtures).
++- `account` remains ~18s (models) — nested `account` + helper-built
++  `user` still brings Fabrication pipeline overhead (schematic
++  evaluation on BasicObject, BCrypt stretch for devise password hash,
++  PG exec). GC is ~10%+ per stackprof.
++- Nested fabrications are still the dominant amplifier: every
++  `Fabricate(:status)` fabricates an `account`, so account-time surfaces
++  inside many other factories (status, favourite, poll, etc.).
+diff --git a/spec/fabricators/account_fabricator.rb b/spec/fabricators/account_fabricator.rb
+index 6a5218cee9..5f8cecc5c3 100644
+--- a/spec/fabricators/account_fabricator.rb
++++ b/spec/fabricators/account_fabricator.rb
+@@ -4,14 +4,14 @@ require_relative '../support/signing_keys_helpers'
+ 
+ Fabricator(:account) do
+   transient :suspended, :silenced, :legacy_keypair, :requested_deletion
+-  username              { sequence(:username) { |i| "#{Faker::Internet.user_name(separators: %w(_))}#{i}" } }
++  username              { sequence(:username) { |i| "user_#{i}" } }
+   last_webfingered_at   { Time.now.utc }
+   public_key            { |attrs| attrs[:legacy_keypair] ? SigningKeysHelpers::PUBLIC_RSA_TEST_KEY : '' }
+   private_key           { |attrs| attrs[:legacy_keypair] && attrs[:domain].nil? ? SigningKeysHelpers::PRIVATE_RSA_TEST_KEY : nil }
+   suspended_at          { |attrs| attrs[:suspended] ? Time.now.utc : nil }
+   silenced_at           { |attrs| attrs[:silenced] ? Time.now.utc : nil }
+   requested_deletion_at { |attrs| attrs[:requested_deletion] ? Time.now.utc : nil }
+-  user                  { |attrs| attrs[:domain].nil? ? Fabricate.build(:user, account: nil) : nil }
++  user                  { |attrs| attrs[:domain].nil? ? FabricateHelpers.build_user : nil }
+   uri                   { |attrs| attrs[:domain].nil? ? nil : "https://#{attrs[:domain]}/users/#{attrs[:username]}" }
+   discoverable          true
+   indexable             true
+diff --git a/spec/fabricators/status_fabricator.rb b/spec/fabricators/status_fabricator.rb
+index d38eec8603..fe5ee1362f 100644
+--- a/spec/fabricators/status_fabricator.rb
++++ b/spec/fabricators/status_fabricator.rb
+@@ -7,8 +7,5 @@ Fabricator(:status) do
+   after_build do |status|
+     status.uri = Faker::Internet.device_token if !status.account.local? && status.uri.nil?
+   end
+-
+-  after_create do |status|
+-    Fabricate(:bookmark, status: status)
+-  end
+ end
++
+diff --git a/spec/fabricators/user_fabricator.rb b/spec/fabricators/user_fabricator.rb
+index c82a3c918e..ce2ebc434f 100644
+--- a/spec/fabricators/user_fabricator.rb
++++ b/spec/fabricators/user_fabricator.rb
+@@ -7,27 +7,23 @@ Fabricator(:user) do
+       attrs.fetch(:account_attributes, {}).merge(user: nil)
+     )
+   end
+-  email        { sequence(:email) { |i| "#{i}#{Faker::Internet.email}" } }
++  email        { sequence(:email) { |i| "user_#{i}@example.com" } }
+   password     '123456789'
+   confirmed_at { Time.zone.now }
+   current_sign_in_at { Time.zone.now }
+   agreement true
+-
+-  after_create do |user|
+-    2.times { Fabricate(:login_activity, user: user) }
+-  end
+ end
+ 
+ Fabricator(:admin_user, from: :user) do
+-  role UserRole.find_by(name: 'Admin')
++  role FabricateHelpers.role('Admin')
+ end
+ 
+ Fabricator(:moderator_user, from: :user) do
+-  role UserRole.find_by(name: 'Moderator')
++  role FabricateHelpers.role('Moderator')
+ end
+ 
+ Fabricator(:owner_user, from: :user) do
+-  role UserRole.find_by(name: 'Owner')
++  role FabricateHelpers.role('Owner')
+ end
+ 
+ Fabricator(:private_user, from: :user) do
+diff --git a/spec/support/fabricate_helpers.rb b/spec/support/fabricate_helpers.rb
+new file mode 100644
+index 0000000000..ac49f6914d
+--- /dev/null
++++ b/spec/support/fabricate_helpers.rb
+@@ -0,0 +1,37 @@
++# frozen_string_literal: true
++
++# Lightweight helpers used by fabricators to avoid Fabrication's schematic
++# evaluation overhead (`BasicObject#instance_exec` chain, ~15 ms per nested
++# `Fabricate.build`) where a plain model instantiation with the same
++# defaults is sufficient (~1 ms).
++#
++# IMPORTANT: These helpers must mirror the defaults of the corresponding
++# fabricators 1:1. When a fabricator default changes, update the helper too.
++module FabricateHelpers
++  class << self
++    # Memoized role lookup. The DB seed creates the canonical Admin/
++    # Moderator/Owner roles once per suite run; hundreds of fabrications
++    # otherwise issue the same SELECT each time.
++    def role(name)
++      (@role_cache ||= {})[name] ||= UserRole.find_by(name:)
++    end
++
++    # A drop-in replacement for Fabricate.build(:user, account: nil) with the
++    # identical defaults to the :user fabricator. Keeps its own email counter
++    # (`helper_user_N@example.com`) to preserve uniqueness across files
++    # (Fabrication sequences are global counters, so both paths stay
++    # monotonic).
++    def build_user(attrs = {})
++      @email_seq = 0 unless defined?(@email_seq)
++      @email_seq += 1
++      overrides = { account: nil }.merge(attrs)
++      User.new({
++        email: "helper_user_#{@email_seq}@example.com",
++        password: '123456789',
++        confirmed_at: Time.zone.now,
++        current_sign_in_at: Time.zone.now,
++        agreement: true,
++      }.merge(overrides))
++    end
++  end
++end

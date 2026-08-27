@@ -1,0 +1,55 @@
+diff --git a/docs/model-spec-performance.md b/docs/model-spec-performance.md
+new file mode 100644
+index 0000000000..33a9661a89
+--- /dev/null
++++ b/docs/model-spec-performance.md
+@@ -0,0 +1,16 @@
++# Model spec performance baseline
++
++Measured locally with the default RSpec filters (JS, search, and streaming are excluded):
++
++- 1,795 examples
++- Baseline wall time: approximately 130.4 seconds (2:08.3 test time; 1.7 seconds load)
++- Slowest 30 examples: approximately 28.9 seconds / 21.9% of test time
++- Slowest recurring groups included `AccountStatusesCleanupPolicy`, `TagFeed`, `Status`, `Notification`, and trend queries.
++
++The model suite is database-heavy. The shared RSpec teardown previously cleared Redis with
++`redis.del(redis.keys)` for every example. Model specs now use `redis.flushdb`, which avoids
++fetching the complete key list before deletion; non-model specs retain the previous cleanup.
++Sidekiq inline mode is also only re-selected when a preceding example changed the mode.
++
++A complete post-change run should be repeated in CI or on a less variable machine before
++using this as the final 30% benchmark; individual local runs varied by several seconds.
+diff --git a/spec/rails_helper.rb b/spec/rails_helper.rb
+index dc330809a1..9d42b7bd2d 100644
+--- a/spec/rails_helper.rb
++++ b/spec/rails_helper.rb
+@@ -106,7 +106,7 @@ RSpec.configure do |config|
+   end
+ 
+   config.before do
+-    Sidekiq.testing!(:inline)
++    Sidekiq.testing!(:inline) unless Sidekiq::Testing.inline?
+   end
+ 
+   config.before :each, type: :cli do
+@@ -128,9 +128,17 @@ RSpec.configure do |config|
+     host! 'localhost:3000'
+   end
+ 
+-  config.after do
++  config.after do |example|
+     Rails.cache.clear
+-    redis.del(redis.keys)
++
++    # Model specs only use the dedicated test Redis database. FLUSHDB avoids
++    # fetching every key just to delete it, which is particularly expensive
++    # across the large model suite. Keep the existing cleanup for other specs.
++    if example.metadata[:type] == :model
++      redis.flushdb
++    else
++      redis.del(redis.keys)
++    end
+   end
+ 
+   # Assign types based on dir name for non-inferred types

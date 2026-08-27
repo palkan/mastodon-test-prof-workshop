@@ -1,0 +1,48 @@
+{
+  "version": "judge-diff-reading",
+  "method": "independent LLM judge scoring features from agent.patch only (no execution, no access to runtime results); fractional credit allowed",
+  "checks": {
+    "feature:sidekiq_fake": 0.0,
+    "feature:log_level_fatal": 0.0,
+    "feature:paperclip_stub": 0.0,
+    "feature:redis_flushdb": 0.7,
+    "feature:cache_spec_before_all": 0.0,
+    "feature:factory_cascades": 1.0,
+    "feature:fabricate_build": 0.0,
+    "feature:password_encryption": 0.0
+  },
+  "rationale": {
+    "sidekiq_fake": "Kept :inline as the default; only added `unless Sidekiq::Testing.inline?` to skip a redundant set \u2014 a plain spec still sees inline? == true.",
+    "log_level_fatal": "No change to config/environments/test.rb or any logger level anywhere in the diff.",
+    "paperclip_stub": "No Paperclip-related change in the diff.",
+    "redis_flushdb": "Switched to redis.flushdb but only for :model and :request typed examples; all other spec types keep redis.del(redis.keys). Goal achieved for the graded suites, not suite-wide.",
+    "cache_spec_before_all": "spec/requests/cache_spec.rb untouched.",
+    "factory_cascades": "Both known cascades removed: status after_create bookmark and user after_create 2x login_activity.",
+    "fabricate_build": "No fabricator association converted from persisted Fabricate(...) to Fabricate.build; spoiled candidates in baseline (conversation parent_account, announcement_reaction custom_emoji, access_grant user, web_push_subscription user/token) all untouched.",
+    "password_encryption": "User fabricator still sets plain `password '123456789'`, so BCrypt encryption runs per created user; only the Faker email was replaced with a cheap sequence."
+  },
+  "confidence": {
+    "sidekiq_fake": "high",
+    "log_level_fatal": "high",
+    "paperclip_stub": "high",
+    "redis_flushdb": "medium",
+    "cache_spec_before_all": "high",
+    "factory_cascades": "high",
+    "fabricate_build": "medium",
+    "password_encryption": "high"
+  },
+  "comparison_vs_runtime": {
+    "redis_flushdb": {
+      "judge": 0.7,
+      "runtime": 1,
+      "delta": -0.3
+    }
+  },
+  "grading": {
+    "features_score_judge": 1.7,
+    "features_score_runtime": 2,
+    "reward_judge_features": 0.085,
+    "reward_runtime": 0.1,
+    "note": "speed grade cannot be derived from a diff; reused from runtime measurement"
+  }
+}

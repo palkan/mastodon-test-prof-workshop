@@ -1,0 +1,66 @@
+diff --git a/docs/factory-spec-performance.md b/docs/factory-spec-performance.md
+new file mode 100644
+index 0000000000..db4269cb61
+--- /dev/null
++++ b/docs/factory-spec-performance.md
+@@ -0,0 +1,13 @@
++# Factory performance notes
++
++The focused model and request suites use `Fabricate(:status)` and
++`Fabricate(:user)` extensively. Their factories previously had broad `after_create`
++side effects: every status created a bookmark and every user created two login
++activities. These records were not part of the normal fixture contract; specs that
++exercise bookmarks or login activities create the records explicitly. Removing the
++callbacks avoids hundreds of extra inserts and nested fabrications per run while
++leaving the examples unchanged.
++
++If a future spec needs a status's bookmark or a user's login history, it should
++create that relationship explicitly rather than making it an implicit property of
++the base fabricator.
+diff --git a/spec/fabricators/account_fabricator.rb b/spec/fabricators/account_fabricator.rb
+index 6a5218cee9..2ac6610911 100644
+--- a/spec/fabricators/account_fabricator.rb
++++ b/spec/fabricators/account_fabricator.rb
+@@ -4,7 +4,7 @@ require_relative '../support/signing_keys_helpers'
+ 
+ Fabricator(:account) do
+   transient :suspended, :silenced, :legacy_keypair, :requested_deletion
+-  username              { sequence(:username) { |i| "#{Faker::Internet.user_name(separators: %w(_))}#{i}" } }
++  username              { sequence(:username) { |i| "username#{i}" } }
+   last_webfingered_at   { Time.now.utc }
+   public_key            { |attrs| attrs[:legacy_keypair] ? SigningKeysHelpers::PUBLIC_RSA_TEST_KEY : '' }
+   private_key           { |attrs| attrs[:legacy_keypair] && attrs[:domain].nil? ? SigningKeysHelpers::PRIVATE_RSA_TEST_KEY : nil }
+diff --git a/spec/fabricators/status_fabricator.rb b/spec/fabricators/status_fabricator.rb
+index d38eec8603..17ac9ccd8a 100644
+--- a/spec/fabricators/status_fabricator.rb
++++ b/spec/fabricators/status_fabricator.rb
+@@ -7,8 +7,4 @@ Fabricator(:status) do
+   after_build do |status|
+     status.uri = Faker::Internet.device_token if !status.account.local? && status.uri.nil?
+   end
+-
+-  after_create do |status|
+-    Fabricate(:bookmark, status: status)
+-  end
+ end
+diff --git a/spec/fabricators/user_fabricator.rb b/spec/fabricators/user_fabricator.rb
+index c82a3c918e..bcd27c523a 100644
+--- a/spec/fabricators/user_fabricator.rb
++++ b/spec/fabricators/user_fabricator.rb
+@@ -7,15 +7,11 @@ Fabricator(:user) do
+       attrs.fetch(:account_attributes, {}).merge(user: nil)
+     )
+   end
+-  email        { sequence(:email) { |i| "#{i}#{Faker::Internet.email}" } }
++  email        { sequence(:email) { |i| "user#{i}@example.com" } }
+   password     '123456789'
+   confirmed_at { Time.zone.now }
+   current_sign_in_at { Time.zone.now }
+   agreement true
+-
+-  after_create do |user|
+-    2.times { Fabricate(:login_activity, user: user) }
+-  end
+ end
+ 
+ Fabricator(:admin_user, from: :user) do
